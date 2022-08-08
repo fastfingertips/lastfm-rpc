@@ -5,21 +5,18 @@ import urllib.parse as parse
 import requests
 from bs4 import BeautifulSoup
 import os
-import random
 import time
+import json
 
 client_id = '702984897496875072'
 RPC = Presence(client_id)
-print(RPC)
 already_enabled = False
 already_disabled = True
 start_time = None
 LastTrack = None
 
 def urlEncoder(text):
-    text = parse.quote(text, safe='')
-    print(text)
-    return text
+    return parse.quote(text, safe='') # url encode the text
 
 def getRemoval(inside_obj, find_obj=' ', return_type=None):
 	if return_type == None:
@@ -58,20 +55,9 @@ def getDom(response): # get the dom of the response
     dom = BeautifulSoup(response.content, 'html.parser')
     return dom
 
-def getHeaderStatus(dom): # get the header status of the user
-    headerStatus = [0, 0, 0]
-    headers = dom.find_all("div", {"class": "header-metadata-display"})
-    for i in range(len(headers)):
-        headerStatus[i] = headers[i].text.strip()
-        headerStatus[i] = getRemoval(headerStatus[i],',', int) # {} içerisindeki {}'i kaldır ve {} olarak geri al.
-    return headerStatus
-
-def getDisplayName(dom): # get the display name of the user
-    displayName = dom.find("span", {"class":"header-title-display-name"})
-    displayName = displayName.text.strip()
-    return displayName
-
-def getUserInfos(userProfileUrl):
+def getUserInfos(username):
+    userProfileUrl = f'https://www.last.fm/user/{username}'
+    data = {}
     while True:
         response = getResponse(userProfileUrl)
         responseCode = getResponseCode(response)
@@ -80,52 +66,65 @@ def getUserInfos(userProfileUrl):
             pageContent = getDom(response)
 
             # Dpslay Name
-            userDisplayName = getDisplayName(pageContent)
+            def getDisplayName(dom): # get the display name of the user
+                displayName = dom.find("span", {"class":"header-title-display-name"})
+                displayName = displayName.text.strip()
+                return displayName
+            data["display_name"] = getDisplayName(pageContent)
 
             # Avatar Url
-            defaultAvatarId = "818148bf682d429dc215c1705eb27b98" # default avatar id
-            defaultImageUrl = f"https://lastfm.freetls.fastly.net/i/u/avatar170s/{defaultAvatarId}.png" # default avatar url
-            profileAvatarUrl = pageContent.find("meta", property="og:image")["content"] # find the profile avatar url
-            profileAvatarUrl = profileAvatarUrl.replace("/avatar170s","") # remove the size of the avatar
-            avatarSuffix = os.path.splitext(profileAvatarUrl)[1] # get the suffix of the avatar
-            profileAvatarUrl = profileAvatarUrl.replace(avatarSuffix,".gif") # replace the suffix with .gif
-            if defaultAvatarId in profileAvatarUrl:
-                profileAvatarUrl = None # "No Avatar (Last.fm default avatar)"
+            def getAvatarUrl(dom): # get the avatar url of the user
+                defaultAvatarId = "818148bf682d429dc215c1705eb27b98" # default avatar id
+                defaultImageUrl = f"https://lastfm.freetls.fastly.net/i/u/avatar170s/{defaultAvatarId}.png" # default avatar url
+                profileAvatarUrl = pageContent.find("meta", property="og:image")["content"] # find the profile avatar url
+                profileAvatarUrl = profileAvatarUrl.replace("/avatar170s","") # remove the size of the avatar
+                avatarSuffix = os.path.splitext(profileAvatarUrl)[1] # get the suffix of the avatar
+                profileAvatarUrl = profileAvatarUrl.replace(avatarSuffix,".gif") # replace the suffix with .gif
+                if defaultAvatarId in profileAvatarUrl:
+                    profileAvatarUrl = None # "No Avatar (Last.fm default avatar)"
+                return profileAvatarUrl
+            data["avatar_url"] = getAvatarUrl(pageContent)
 
             # Header Status
-            headerStatus = getHeaderStatus(pageContent)
+            def getHeaderStatus(dom): # get the header status of the user
+                headerStatus = [0, 0, 0]
+                headers = dom.find_all("div", {"class": "header-metadata-display"})
+                for i in range(len(headers)):
+                    headerStatus[i] = headers[i].text.strip()
+                    headerStatus[i] = getRemoval(headerStatus[i],',', int) # {} içerisindeki {}'i kaldır ve {} olarak geri al.
+                return headerStatus
+            data["header_status"] = getHeaderStatus(pageContent)
 
-            return {"display_name": userDisplayName,
-                    "avatar_url": profileAvatarUrl,
-                    "header_status" : headerStatus}
+            return data
 
-def getLibraryInfo(username, artistName = None , trackName = None):
+def getLibraryInfo(username, artistName, trackName):
     libraryUrl = f'https://www.last.fm/user/{username}/library/music'
-    artistCountUrl = f'{libraryUrl}/+noredirect/{urlEncoder(artistName)}?date_preset=ALL'
-    trackInfoUrl = f'{libraryUrl}/+noredirect/{urlEncoder(artistName)}/_/{urlEncoder(trackName)}?date_preset=ALL'
+    libs = {
+        "artists_url" : f'{libraryUrl}/+noredirect/{urlEncoder(artistName)}?date_preset=ALL',
+        "tracks_url" : f'{libraryUrl}/+noredirect/{urlEncoder(artistName)}/_/{urlEncoder(trackName)}?date_preset=ALL'}
 
-    artistCount = getArtistInfo(username, artistName)
-    trackInfo = getTrackInfo(username, artistName, trackName)
+    data = {}
+    for url in libs:
+        response = getResponse(libs[url])
+        pageContent = getDom(response)
+        if libs[url] == libs["artists_url"]: # if the url is the artist url
+            def getArtistInfo(dom):
+                artistInfo = dom.find_all("p", {"class":"metadata-display"})
+                artistInfo = artistInfo[0].text if len(artistInfo) != 0 else '0' # if there is no artist info, return 0    
+                return artistInfo
+            data["artist_count"] = getArtistInfo(pageContent)
+            # print(f'{artistName}: {data["artist_count"]}')
+        elif libs[url] == libs["tracks_url"]: # if the url is the track url
+            def getTrackInfo(dom):
+                trackInfo = dom.find_all("p", {"class":"metadata-display"})
+                trackInfo = trackInfo[0].text if len(trackInfo) != 0 else '0' # if there is no track info, return 0
+                return trackInfo
+            data["track_count"] = getTrackInfo(pageContent)
+            # print(f'{artistName} - {trackName}: {data["track_count"]}')
+        else:
+            print("This url is not supported:", libs[url])
 
-    print(artistCountUrl, trackInfoUrl)
-
-def getArtistInfo(username, artistName): # getting artist info from last.fm
-    artistCountUrl = f'https://www.last.fm/user/{username}/library/music/+noredirect/{urlEncoder(artistName)}?date_preset=ALL'
-    response = getResponse(artistCountUrl)
-    artistCountDom = getDom(response)
-    artistInfo = artistCountDom.find_all("p", {"class":"metadata-display"})
-    artistInfo = artistInfo[0].text if len(artistInfo) != 0 else '0' # if there is no artist info, return 0
-    print(f'{artistName}: {artistInfo}')
-    return artistInfo
-
-def getTrackInfo(username, artistName, trackName): # getting track info from last.fm
-    trackInfoUrl = f'https://www.last.fm/user/{username}/library/music/+noredirect/{urlEncoder(artistName)}/_/{urlEncoder(trackName)}?date_preset=ALL'
-    response = getResponse(trackInfoUrl)
-    trackInfoDom = getDom(response)
-    trackInfo = trackInfoDom.find_all("p", {"class":"metadata-display"})
-    trackInfo = trackInfo[0].text if len(trackInfo) != 0 else '0' # if there is no track info, return 0
-    print(f'{artistName} - {trackName}: {trackInfo}')
-    return trackInfo
+    return data
 
 def enable_RPC():
     global already_enabled,already_disabled
@@ -154,27 +153,24 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
        #{"label": "View Track", "url": str(f"https://www.last.fm/music/{urlEncoder(artist)}/{urlEncoder(title)}")}
        #{"label": "View Last.fm Profile", "url": str(f"https://www.last.fm/user/{username}")}
 
-        userPageUrl = f'https://www.last.fm/user/{username}'
-        userInfos = getUserInfos(userPageUrl)
-        rpcSmallImage = userInfos["avatar_url"]
-        
+        userInfos = getUserInfos(username)
+        print(json.dumps(userInfos, indent=2))
+        libraryInfos = getLibraryInfo(username, artist, title)
+        print(json.dumps(libraryInfos, indent=2))
+
         lineLimit = 26
+        rpcSmallImage = userInfos["avatar_url"]
         smallImageLines = {
             userInfos['display_name']:  f'(@{username})',
             "Scrobbles":                f'{userInfos["header_status"][0]}',
             "Artists":                  f'{userInfos["header_status"][1]}',
-            "Loved Tracks":             f'{userInfos["header_status"][2]}',
-        }
+            "Loved Tracks":             f'{userInfos["header_status"][2]}'}
 
-
-        artistInfo = getArtistInfo(username, artist)
-        trackInfo = getTrackInfo(username, artist, title)
-        print(f'{artist}: {artistInfo}')
-        print(f'{artist} - {title}: {trackInfo}')
+        artistCount = libraryInfos["artist_count"]
+        trackCount = libraryInfos["track_count"]
 
         largeImageLines = {
-            "Artist's Scrobbles": artistInfo if artistInfo == '0'else f'{artistInfo}/{trackInfo}',
-        }
+            "Artist's Scrobbles": artistCount if artistCount == '0'else f'{artistCount}/{trackCount}'}
 
         rpcSmallImageText = ''
         rpcLargeImageText = ''
@@ -182,7 +178,8 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
         for line_key in smallImageLines:
             # first line check
             line = f'{line_key}: {smallImageLines[line_key]} '
-            rpcSmallImageText += f'{line}{(lineLimit - len(line) - sum(_.isupper() for _ in line))*"•"} '
+            lineSuffix = "" if len(line) > 20 else (lineLimit - len(line) - sum(_.isupper() for _ in line))*"•"
+            rpcSmallImageText += f'{line}{lineSuffix} '
         if len(rpcSmallImageText) > 128: # if the text is too long, cut it
             rpcSmallImageText = rpcSmallImageText.replace('•','')
         
@@ -192,7 +189,7 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
         if len(rpcLargeImageText) > 128: # if the text is too long, cut it
             rpcLargeImageText = rpcLargeImageText.replace('•','')
 
-        # arwork
+        # artwork
         if artwork == None: # if there is no artwork, use the default one
             now = datetime.datetime.now()
             if now.hour >= 18 or now.hour < 9: # if it's after 6pm or before 9am, use the night image
