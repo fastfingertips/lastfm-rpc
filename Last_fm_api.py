@@ -2,8 +2,8 @@ import pylast
 import time
 import DiscordRPC as RPC
 
-API_KEY = "4a47d43987a47ead6689e15009d099b4"
-API_SECRET = "4f79bc1115694a8b123f56c88aef6be4"
+API_KEY = "c16f6449f1f6b13b9b417b0a08313ded"
+API_SECRET = "dc99dbc2caa7b23d192ed18db92754f9"
 
 network = pylast.LastFMNetwork(api_key=API_KEY, api_secret=API_SECRET)
 
