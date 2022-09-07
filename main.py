@@ -11,6 +11,8 @@ from Last_fm_api import LastFmUser
 import DiscordRPC
 
 rpc_state = True
+usernameFile = 'username.txt'
+
 
 def toggle_rpc(Icon, item):
     global rpc_state
@@ -20,40 +22,40 @@ def toggle_rpc(Icon, item):
 def exit(Icon, item):
     icon_tray.stop()
 
-if getattr(sys, 'frozen', False):
-    directory = os.path.dirname(sys.executable)
-elif __file__:
-    directory = os.path.dirname(__file__)
+if getattr(sys, 'frozen', False): directory = os.path.dirname(sys.executable)
+elif __file__: directory = os.path.dirname(__file__)
 
 imageDir = os.path.join(directory, "assets/icon.png")
 
 root = tkinter.Tk()
 root.withdraw()
 
-try:
-    im = Image.open(imageDir)
-except FileNotFoundError as identifier:
-    messagebox.showerror('Error','Assets folder not found!')
+try: im = Image.open(imageDir)
+except FileNotFoundError as identifier: messagebox.showerror('Error','Assets folder not found!')
 
-try:
-    f = open('username.txt', 'r')
-except FileNotFoundError as identifier:
-    messagebox.showerror('Error','File "username.txt" not found!')
+try: 
+    f = open(usernameFile, 'r')
+    username = f.read()
+    print(f"Last.fm username: {username}")
+    User = LastFmUser(username, 2)
+    menu_icon = Menu(
+    item('User: '+username, None),
+    item('Enable Rich Presence',toggle_rpc, checked=lambda item: rpc_state),
+    Menu.SEPARATOR,
+    item('Exit', exit))
+    icon_tray = Icon(
+        'Last.fm Discord Rich Presence',
+        icon=im,
+        title="Last.fm Discord Rich Presence",
+        menu=menu_icon)
 
-username = f.read()
-print("Last.fm username: "+username)
-User = LastFmUser(username, 2)
-
-menu_icon = Menu(item('User: '+username, None), item('Enable Rich Presence',toggle_rpc, checked=lambda item: rpc_state),
-    Menu.SEPARATOR, item('Exit', exit))
-icon_tray = Icon('Last.fm Discord Rich Presence', icon=im, title="Last.fm Discord Rich Presence", menu=menu_icon)
+except FileNotFoundError as identifier: messagebox.showerror('Error',f'File {usernameFile} not found!')
 
 def RPCFunction(loop):
     print("Starting RPC")
     asyncio.set_event_loop(loop)
     while True:
-        if rpc_state == True:
-            User.now_playing()
+        if rpc_state == True: User.now_playing()
         else:
             DiscordRPC.disconnect()
             time.sleep(2)
