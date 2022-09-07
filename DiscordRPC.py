@@ -161,55 +161,55 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
         libraryInfos = getLibraryInfo(username, artist, title)
         print(json.dumps(libraryInfos, indent=2))
 
-        lineLimit = 26
+        
         rpcSmallImage = userInfos["avatar_url"]
 
         smallImageLines = {
             'name':         f"{displayName} (@{username})",
-            "scrobbles":    f"Scrobbles: {scrobbles}",
-            "artists":      f"Artists: {artists}",
-            "loved_tracks": f"Loved Tracks: {lovedTracks}"
+            "scrobbles":    f'Scrobbles: {scrobbles}',
+            "artists":      f'Artists: {artists}',
+            "loved_tracks": f'Loved Tracks: {lovedTracks}'
             }
 
         largeImageLines = {}
         artistCount = libraryInfos["artist_count"]
-
-        if not artistCount: largeImageLines['first_time'] = f'{displayName} is listening to {artist} for the first time!'
 
         # artwork
         if artwork == None: # if there is no artwork, use the default one
             now = datetime.datetime.now()
             isDay = now.hour >= 18 or now.hour < 9  #day: false, night: true
             artwork = 'https://i.imgur.com/GOVbNaF.png' if isDay else 'https://i.imgur.com/kvGS4Pa.png'
-            largeImageLines['theme'] = f"No Artwork, {'Night' if isDay else 'Day'} Mode Cover"
+            largeImageLines['theme'] = f"{'Night' if isDay else 'Day'} Mode Cover"
         else: pass
 
         if artistCount: # if the artist is in the library
             trackCount = libraryInfos["track_count"]
             largeImageLines["artist_scrobbles"] = f'Scrobbles: {artistCount}/{trackCount}' if trackCount else f'Scrobbles: {artistCount}'
-        else: pass # if the artist is not in the library
+        else: largeImageLines['first_time'] = f'{displayName} is listening to {artist} for the first time!'
 
-        # smaill image text
+        # line process
         rpcSmallImageText = ''
-        for line_key in smallImageLines:
-            if len(smallImageLines.items()) > 1:
-                # first line check
-                line = f'{smallImageLines[line_key]} '
-                lineSuffix = "" if len(line) > 20 else (lineLimit - len(line) - sum(_.isupper() for _ in line))*"•"
-                rpcSmallImageText += f'{line}{lineSuffix} '
-            else: rpcSmallImageText = smallImageLines[line_key]
-
-        # large image text
         rpcLargeImageText = ''
+        lineLimit = 26
+        xchar = ' '
+
+        print(len(largeImageLines), largeImageLines)
+        for line_key in smallImageLines:
+            line = f'{smallImageLines[line_key]} '
+            lineSuffix = "" if len(line) > 20 else (lineLimit - len(line) - sum(_.isupper() for _ in line))*xchar
+            rpcSmallImageText += f'{line}{lineSuffix} '
+
         for line_key in largeImageLines:
-            if len(largeImageLines.items()) > 1:
-                line = f'{largeImageLines[line_key]} '
-                rpcLargeImageText += f'{line}{(lineLimit - len(line) - sum(_.isupper() for _ in line))*"•"} '
-            else: rpcLargeImageText = largeImageLines[line_key]
+            line = f'{largeImageLines[line_key]} '
+            if len(largeImageLines) == 1: rpcLargeImageText = line
+            else:
+                """lineSuffix = "" if len(line) > 20 else (lineLimit - len(line) - sum(_.isupper() for _ in line))*xchar
+                rpcLargeImageText += f'{line}{lineSuffix} '"""
+                rpcLargeImageText += f'{line}{(lineLimit - len(line) - sum(_.isupper() for _ in line))*xchar} '
 
          # if the text is too long, cut it
-        if len(rpcSmallImageText) > 128: rpcSmallImageText = rpcSmallImageText.replace('•','')
-        if len(rpcLargeImageText) > 128: rpcLargeImageText = rpcLargeImageText.replace('•','')
+        if len(rpcSmallImageText) > 128: rpcSmallImageText = rpcSmallImageText.replace(xchar,'')
+        if len(rpcLargeImageText) > 128: rpcLargeImageText = rpcLargeImageText.replace(xchar,'')
 
         timeRemainingBool = time_remaining != '0'
         albumBool = album != 'None'
