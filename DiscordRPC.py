@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 import os
 import time
 import json
+import random
 
 client_id = '702984897496875072'
 RPC = Presence(client_id)
@@ -44,16 +45,13 @@ def getResponse(url): # get the response of the request
         response = requests.get(url)
         reponseCode = getResponseCode(response)
         print(reponseCode, url)
-        if reponseCode in range(200,299):
-            return response
+        if reponseCode in range(200,299): return response
         time.sleep(2)
 
 def getResponseCode(response): # get the response code of the request
     return response.status_code
 
-def getDom(response): # get the dom of the response
-    dom = BeautifulSoup(response.content, 'html.parser')
-    return dom
+def getDom(response): return BeautifulSoup(response.content, 'html.parser')
 
 def getUserInfos(username):
     userProfileUrl = f'https://www.last.fm/user/{username}'
@@ -112,17 +110,18 @@ def getLibraryInfo(username, artistName, trackName):
                 artistInfo = dom.find_all("p", {"class":"metadata-display"})
                 artistInfo = artistInfo[0].text if len(artistInfo) != 0 else '0' # if there is no artist info, return 0    
                 return artistInfo
-            data["artist_count"] = getArtistInfo(pageContent)
+            artistCount = getArtistInfo(pageContent)
+            data["artist_count"] = getRemoval(artistCount,',', int)
             # print(f'{artistName}: {data["artist_count"]}')
         elif libs[url] == libs["tracks_url"]: # if the url is the track url
             def getTrackInfo(dom):
                 trackInfo = dom.find_all("p", {"class":"metadata-display"})
                 trackInfo = trackInfo[0].text if len(trackInfo) != 0 else '0' # if there is no track info, return 0
                 return trackInfo
-            data["track_count"] = getTrackInfo(pageContent)
+            trackCount = getTrackInfo(pageContent)
+            data["track_count"] = getRemoval(trackCount,',', int)
             # print(f'{artistName} - {trackName}: {data["track_count"]}')
-        else:
-            print("This url is not supported:", libs[url])
+        else: print("This url is not supported:", libs[url])
 
     return data
 
@@ -136,17 +135,15 @@ def enable_RPC():
 
 def update_Status(track, title, artist, album, time_remaining, username, artwork):
     global start_time, LastTrack
-    if len(title) < 2:
-        title = title + ' '
-    if LastTrack == track: #if the track is the same as the last track, don't update the status
-        pass
+    if len(title) < 2: title = title + ' '
+    if LastTrack == track: pass#if the track is the same as the last track, don't update the status
     else: #if the track is different, update the status
         print("Now Playing: " + track)
         start_time = datetime.datetime.now().timestamp()
         LastTrack = track
         trackArtistAlbum = f'{artist} - {album}'
         time_remaining = str(time_remaining)[0:3]
-        
+
         lastfmProfileButton = [
         {"label": "View Track", "url": str(f"https://www.last.fm/tr/user/{username}/library/music/{urlEncoder(artist)}/_/{urlEncoder(title)}")},
         {"label": "Search on Spotify" , "url": str(f"https://open.spotify.com/search/{urlEncoder(album)}")}]
@@ -154,75 +151,100 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
        #{"label": "View Last.fm Profile", "url": str(f"https://www.last.fm/user/{username}")}
 
         userInfos = getUserInfos(username)
+        
+        displayName = userInfos["display_name"]
+        scrobbles = userInfos['header_status'][0]
+        artists = userInfos['header_status'][1]
+        lovedTracks = userInfos['header_status'][2]
+        
         print(json.dumps(userInfos, indent=2))
         libraryInfos = getLibraryInfo(username, artist, title)
         print(json.dumps(libraryInfos, indent=2))
 
         lineLimit = 26
         rpcSmallImage = userInfos["avatar_url"]
+
         smallImageLines = {
-            userInfos['display_name']:  f'(@{username})',
-            "Scrobbles":                f'{userInfos["header_status"][0]}',
-            "Artists":                  f'{userInfos["header_status"][1]}',
-            "Loved Tracks":             f'{userInfos["header_status"][2]}'}
+            'name':         f"{displayName} (@{username})",
+            "scrobbles":    f"Scrobbles: {scrobbles}",
+            "artists":      f"Artists: {artists}",
+            "loved_tracks": f"Loved Tracks: {lovedTracks}"
+            }
 
+        largeImageLines = {}
         artistCount = libraryInfos["artist_count"]
-        trackCount = libraryInfos["track_count"]
 
-        largeImageLines = {
-            "Artist's Scrobbles": artistCount if artistCount == '0'else f'{artistCount}/{trackCount}'}
-
-        rpcSmallImageText = ''
-        rpcLargeImageText = ''
-
-        for line_key in smallImageLines:
-            # first line check
-            line = f'{line_key}: {smallImageLines[line_key]} '
-            lineSuffix = "" if len(line) > 20 else (lineLimit - len(line) - sum(_.isupper() for _ in line))*"•"
-            rpcSmallImageText += f'{line}{lineSuffix} '
-        if len(rpcSmallImageText) > 128: # if the text is too long, cut it
-            rpcSmallImageText = rpcSmallImageText.replace('•','')
-        
-        for line_key in largeImageLines:
-            line = f'{line_key}: {largeImageLines[line_key]} '
-            rpcLargeImageText += f'{line}{(lineLimit - len(line) - sum(_.isupper() for _ in line))*"•"} '
-        if len(rpcLargeImageText) > 128: # if the text is too long, cut it
-            rpcLargeImageText = rpcLargeImageText.replace('•','')
+        if not artistCount: largeImageLines['first_time'] = f'{displayName} is listening to {artist} for the first time!'
 
         # artwork
         if artwork == None: # if there is no artwork, use the default one
             now = datetime.datetime.now()
-            if now.hour >= 18 or now.hour < 9: # if it's after 6pm or before 9am, use the night image
-                artwork = "https://cdn-icons-png.flaticon.com/512/121/121546.png" # night image
-            else:
-                artwork = "https://cdn-icons-png.flaticon.com/512/143/143664.png" # day image
+            isDay = now.hour >= 18 or now.hour < 9  #day: false, night: true
+            artwork = 'https://i.imgur.com/GOVbNaF.png' if isDay else 'https://i.imgur.com/kvGS4Pa.png'
+            largeImageLines['theme'] = f"No Artwork, {'Night' if isDay else 'Day'} Mode Cover"
+        else: pass
 
-        if time_remaining != '0':
-            if album != 'None':
-                print(1)
+        if artistCount: # if the artist is in the library
+            trackCount = libraryInfos["track_count"]
+            largeImageLines["artist_scrobbles"] = f'Scrobbles: {artistCount}/{trackCount}' if trackCount else f'Scrobbles: {artistCount}'
+        else: pass # if the artist is not in the library
+
+        # smaill image text
+        rpcSmallImageText = ''
+        for line_key in smallImageLines:
+            if len(smallImageLines.items()) > 1:
+                # first line check
+                line = f'{smallImageLines[line_key]} '
+                lineSuffix = "" if len(line) > 20 else (lineLimit - len(line) - sum(_.isupper() for _ in line))*"•"
+                rpcSmallImageText += f'{line}{lineSuffix} '
+            else: rpcSmallImageText = smallImageLines[line_key]
+
+        # large image text
+        rpcLargeImageText = ''
+        for line_key in largeImageLines:
+            if len(largeImageLines.items()) > 1:
+                line = f'{largeImageLines[line_key]} '
+                rpcLargeImageText += f'{line}{(lineLimit - len(line) - sum(_.isupper() for _ in line))*"•"} '
+            else: rpcLargeImageText = largeImageLines[line_key]
+
+        
+        if len(rpcSmallImageText) > 128: # if the text is too long, cut it
+            rpcSmallImageText = rpcSmallImageText.replace('•','')
+        if len(rpcLargeImageText) > 128: # if the text is too long, cut it
+            rpcLargeImageText = rpcLargeImageText.replace('•','')
+
+        timeRemainingBool = time_remaining != '0'
+        albumBool = album != 'None'
+        print(f'Album: {albumBool}: {album}')
+        print(f'Time Remaining: {timeRemainingBool}: {time_remaining}')
+
+        if timeRemainingBool:
+            if albumBool:
+                print('Updating status with album, time remaining.')
                 RPC.update(details=title, state=album, end=float(time_remaining)+start_time,
                     large_image=artwork, large_text=rpcLargeImageText,
                     small_image=rpcSmallImage, small_text=rpcSmallImageText,
                     buttons=lastfmProfileButton)
             else:
-                print(2) # no album
+                print('Updating status without album, time remaining.')
                 RPC.update(details=title, state=trackArtistAlbum, end=float(time_remaining)+start_time,
                     large_image=artwork, large_text=rpcLargeImageText,
                     small_image=rpcSmallImage, small_text=rpcSmallImageText,
                     buttons=lastfmProfileButton)
         else:
-            if album != 'None':
-                print(3) # no time remaining
+            if albumBool:
+                print('Updating status with album, no time remaining')
                 RPC.update(details=title, state=album,
                     large_image=artwork, large_text=rpcLargeImageText, 
                     small_image=rpcSmallImage, small_text=rpcSmallImageText,
                     buttons=lastfmProfileButton)
             else:
-                print(4) # no time remaining and no album
+                print('Updating status without album, no time remaining')
                 RPC.update(details=title, state=album,
                     large_image="artwork", large_text=rpcLargeImageText, 
                     small_image=rpcSmallImage, small_text=rpcSmallImageText,
                     buttons=lastfmProfileButton,)
+
 
 def disable_RPC():
     global already_enabled
