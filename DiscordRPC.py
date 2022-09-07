@@ -220,13 +220,13 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
 
         updateAssets = {
             'details': title,
-            'large_text': rpcLargeImageText,
-            'small_image': rpcSmallImageText,
-            'small_text': rpcSmallImageText,
             'buttons': lastfmProfileButton,
-
-            'state': trackArtistAlbum if timeRemainingBool and not albumBool else artist,
+            'small_image': rpcSmallImage,
+            'small_text': rpcSmallImageText,
+            'large_text': rpcLargeImageText,
+            # situation-dependent assets
             'large_image': 'artwork' if not timeRemainingBool and not albumBool else artwork,
+            'state': trackArtistAlbum if timeRemainingBool and not albumBool else artist,
             'end': float(time_remaining)+start_time if timeRemainingBool else None}
 
         if timeRemainingBool:
