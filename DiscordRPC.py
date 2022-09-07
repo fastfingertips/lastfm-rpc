@@ -218,33 +218,24 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
         print(f'Album: {albumBool}: {album}')
         print(f'Time Remaining: {timeRemainingBool}: {time_remaining}')
 
-        if timeRemainingBool:
-            if albumBool:
-                print('Updating status with album, time remaining.')
-                RPC.update(details=title, state=album, end=float(time_remaining)+start_time,
-                    large_image=artwork, large_text=rpcLargeImageText,
-                    small_image=rpcSmallImage, small_text=rpcSmallImageText,
-                    buttons=lastfmProfileButton)
-            else:
-                print('Updating status without album, time remaining.')
-                RPC.update(details=title, state=trackArtistAlbum, end=float(time_remaining)+start_time,
-                    large_image=artwork, large_text=rpcLargeImageText,
-                    small_image=rpcSmallImage, small_text=rpcSmallImageText,
-                    buttons=lastfmProfileButton)
-        else:
-            if albumBool:
-                print('Updating status with album, no time remaining')
-                RPC.update(details=title, state=album,
-                    large_image=artwork, large_text=rpcLargeImageText, 
-                    small_image=rpcSmallImage, small_text=rpcSmallImageText,
-                    buttons=lastfmProfileButton)
-            else:
-                print('Updating status without album, no time remaining')
-                RPC.update(details=title, state=album,
-                    large_image="artwork", large_text=rpcLargeImageText, 
-                    small_image=rpcSmallImage, small_text=rpcSmallImageText,
-                    buttons=lastfmProfileButton,)
+        updateAssets = {
+            'details': title,
+            'large_text': rpcLargeImageText,
+            'small_image': rpcSmallImageText,
+            'small_text': rpcSmallImageText,
+            'buttons': lastfmProfileButton}
 
+        updateAssets['state'] = trackArtistAlbum if timeRemainingBool and not albumBool else artist
+        updateAssets['large_image'] = 'artwork' if not timeRemainingBool and not albumBool else artwork
+        updateAssets['end'] = float(time_remaining)+start_time if timeRemainingBool else None
+
+        if timeRemainingBool:
+            if albumBool: print('Updating status with album, time remaining.')
+            else: print('Updating status without album, time remaining.')
+        else:
+            if albumBool: print('Updating status with album, no time remaining')
+            else: print('Updating status without album, no time remaining')
+        RPC.update(**updateAssets)
 
 def disable_RPC():
     global already_enabled
