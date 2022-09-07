@@ -144,7 +144,7 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
         trackArtistAlbum = f'{artist} - {album}'
         time_remaining = str(time_remaining)[0:3]
 
-        lastfmProfileButton = [
+        rpcButtons = [
         {"label": "View Track", "url": str(f"https://www.last.fm/tr/user/{username}/library/music/{urlEncoder(artist)}/_/{urlEncoder(title)}")},
         {"label": "Search on Spotify" , "url": str(f"https://open.spotify.com/search/{urlEncoder(album)}")}]
        #{"label": "View Track", "url": str(f"https://www.last.fm/music/{urlEncoder(artist)}/{urlEncoder(title)}")}
@@ -207,11 +207,9 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
                 rpcLargeImageText += f'{line}{(lineLimit - len(line) - sum(_.isupper() for _ in line))*"•"} '
             else: rpcLargeImageText = largeImageLines[line_key]
 
-        
-        if len(rpcSmallImageText) > 128: # if the text is too long, cut it
-            rpcSmallImageText = rpcSmallImageText.replace('•','')
-        if len(rpcLargeImageText) > 128: # if the text is too long, cut it
-            rpcLargeImageText = rpcLargeImageText.replace('•','')
+         # if the text is too long, cut it
+        if len(rpcSmallImageText) > 128: rpcSmallImageText = rpcSmallImageText.replace('•','')
+        if len(rpcLargeImageText) > 128: rpcLargeImageText = rpcLargeImageText.replace('•','')
 
         timeRemainingBool = time_remaining != '0'
         albumBool = album != 'None'
@@ -220,7 +218,7 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
 
         updateAssets = {
             'details': title,
-            'buttons': lastfmProfileButton,
+            'buttons': rpcButtons,
             'small_image': rpcSmallImage,
             'small_text': rpcSmallImageText,
             'large_text': rpcLargeImageText,
