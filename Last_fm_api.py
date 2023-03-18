@@ -1,9 +1,30 @@
+import DiscordRPC as RPC
 import pylast
 import time
-import DiscordRPC as RPC
+import yaml
+import sys
 
-API_KEY = "c16f6449f1f6b13b9b417b0a08313ded"
-API_SECRET = "dc99dbc2caa7b23d192ed18db92754f9"
+with open('config.yaml', 'r', encoding='utf-8') as config_file:
+    try:
+        config = yaml.safe_load(config_file)
+        API_KEY = config['API']['KEY']
+        API_SECRET = config['API']['SECRET']
+        APP_LANG = config['APP']['LANG']
+        print("API key and secret key have been successfully loaded from config file.")
+    except yaml.YAMLError:
+        print("YAMLError: Error loading configuration file.")
+        sys.exit(1)
+    except KeyError:
+        print("KeyError: Configuration file does not contain the specified key.")
+        sys.exit(1)
+
+with open('translations.yaml', 'r', encoding='utf-8') as translations_file:
+    try:
+        translations = yaml.safe_load(translations_file)[APP_LANG]
+        print('Translations have been successfully loaded from file.')
+    except yaml.YAMLError:
+        print("YAMLError: Error loading translations file.")
+        sys.exit(1)
 
 network = pylast.LastFMNetwork(api_key=API_KEY, api_secret=API_SECRET)
 
@@ -19,14 +40,13 @@ class LastFmUser:
             current_track = self.user.get_now_playing()
             pass
         except pylast.WSError:
-            print("Connection problem at web serice, retrying connection in " +
-                  str(self.cooldown)+" seconds")
+            print(translations['pylast_ws_error'].format(str(self.cooldown)))
             pass
         except pylast.NetworkError:
-            print("The app couldn't comunicate with last.fm servers, check your internet connection!")
+            print(translations['pylast_network_error'])
             pass
         except pylast.MalformedResponseError:
-            print("Last.fm internal server error!, retrying connection")
+            print(translations['pylast_malformed_reponse_error'])
             pass
 
         if current_track is not None:
@@ -41,12 +61,12 @@ class LastFmUser:
             except pylast.WSError:
                 pass
             except pylast.NetworkError:
-                print("The app couldn't comunicate with last.fm servers, check your internet connection!")
+                print(translations['pylast_network_error'])
                 pass
             RPC.enable_RPC()
             RPC.update_Status(str(track), str(title), str(artist), str(album), time_remaining, self.username, artwork)
             time.sleep(self.cooldown+8)
         else:
-            print(f"No song detected, checking again in {str(self.cooldown)} seconds")
+            print(translations['no_song'].format(str(self.cooldown)))
             RPC.disable_RPC()
         time.sleep(self.cooldown)

@@ -1,13 +1,13 @@
-from base64 import decode
-from pypresence import Presence
-import datetime
-import urllib.parse as parse
-import requests
-from bs4 import BeautifulSoup
 import os
 import time
 import json
 import random
+import datetime
+import requests
+from base64 import decode
+import urllib.parse as parse
+from bs4 import BeautifulSoup
+from pypresence import Presence
 
 client_id = '702984897496875072'
 RPC = Presence(client_id)
@@ -98,8 +98,9 @@ def getUserInfos(username):
 def getLibraryInfo(username, artistName, trackName):
     libraryUrl = f'https://www.last.fm/user/{username}/library/music'
     libs = {
-        "artists_url" : f'{libraryUrl}/+noredirect/{urlEncoder(artistName)}?date_preset=ALL',
-        "tracks_url" : f'{libraryUrl}/+noredirect/{urlEncoder(artistName)}/_/{urlEncoder(trackName)}?date_preset=ALL'}
+        "artists_url" : f'{libraryUrl}/+noredirect/{urlEncoder(artistName)}', # + ?date_preset=ALL (login req)
+        "tracks_url" : f'{libraryUrl}/+noredirect/{urlEncoder(artistName)}/_/{urlEncoder(trackName)}' # + ?date_preset=ALL (login req)
+        }
 
     data = {}
     for url in libs:
@@ -108,7 +109,11 @@ def getLibraryInfo(username, artistName, trackName):
         if libs[url] == libs["artists_url"]: # if the url is the artist url
             def getArtistInfo(dom):
                 artistInfo = dom.find_all("p", {"class":"metadata-display"})
-                artistInfo = artistInfo[0].text if len(artistInfo) != 0 else '0' # if there is no artist info, return 0    
+                if bool(artistInfo):
+                    artistInfo = artistInfo[0].text if len(artistInfo) != 0 else '0' # if there is no artist info, return 0   
+                else: # empty list
+                    print('Arist info is empty list')
+                    artistInfo = 0
                 return artistInfo
             artistCount = getArtistInfo(pageContent)
             data["artist_count"] = getRemoval(artistCount,',', int)
@@ -116,7 +121,11 @@ def getLibraryInfo(username, artistName, trackName):
         elif libs[url] == libs["tracks_url"]: # if the url is the track url
             def getTrackInfo(dom):
                 trackInfo = dom.find_all("p", {"class":"metadata-display"})
-                trackInfo = trackInfo[0].text if len(trackInfo) != 0 else '0' # if there is no track info, return 0
+                if bool(trackInfo):
+                    trackInfo = trackInfo[0].text if len(trackInfo) != 0 else '0' # if there is no track info, return 0
+                else: # empty list
+                    print('Track info is empty list')
+                    trackInfo = 0
                 return trackInfo
             trackCount = getTrackInfo(pageContent)
             data["track_count"] = getRemoval(trackCount,',', int)
@@ -126,7 +135,7 @@ def getLibraryInfo(username, artistName, trackName):
     return data
 
 def enable_RPC():
-    global already_enabled,already_disabled
+    global already_enabled, already_disabled
     if already_enabled == False:
         RPC.connect()
         print('Connected with Discord')
@@ -185,7 +194,8 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
         if artistCount: # if the artist is in the library
             trackCount = libraryInfos["track_count"]
             largeImageLines["artist_scrobbles"] = f'Scrobbles: {artistCount}/{trackCount}' if trackCount else f'Scrobbles: {artistCount}'
-        else: largeImageLines['first_time'] = f'{displayName} is listening to {artist} for the first time!'
+        else:
+            largeImageLines['first_time'] = f'First time listening!'
 
         # line process
         rpcSmallImageText = ''
@@ -213,7 +223,7 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
 
         timeRemainingBool = time_remaining != '0'
         albumBool = album != 'None'
-        print(f'Album: {albumBool}: {album}')
+        print(f'Album: {albumBool:5}: {album}')
         print(f'Time Remaining: {timeRemainingBool}: {time_remaining}')
 
         updateAssets = {
@@ -233,7 +243,10 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
         else:
             if albumBool: print('Updating status with album, no time remaining')
             else: print('Updating status without album, no time remaining')
-        RPC.update(**updateAssets)
+        try:
+            RPC.update(**updateAssets)
+        except Exception as e:
+            print('x', e)
 
 def disable_RPC():
     global already_enabled

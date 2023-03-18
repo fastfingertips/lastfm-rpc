@@ -1,26 +1,51 @@
-import sys
 import os
-import threading
-import asyncio
+import sys
 import time
+import yaml
 import tkinter
-from tkinter import messagebox
-from PIL import Image
-from pystray import Icon, Menu, MenuItem as item
-from Last_fm_api import LastFmUser
+import asyncio
+import threading
 import DiscordRPC
+from PIL import Image
+from tkinter import messagebox
+from Last_fm_api import LastFmUser
+from pystray import Icon, Menu, MenuItem as item
 
 rpc_state = True
-usernameFile = 'username.txt'
 
+with open('config.yaml', 'r', encoding='utf-8') as config_file:
+    try:
+        config = yaml.safe_load(config_file)
+        username = config['USER']['USERNAME']
+        app_lang = config['APP']['LANG']
+        print(f'Your username has been successfully set as {username}.')
+    except yaml.YAMLError:
+        print("YAMLError: Error loading configuration file.")
+        sys.exit(1)
+    except KeyError:
+        print("KeyError: Configuration file does not contain the specified key.")
+        sys.exit(1)
+
+with open('translations.yaml', 'r', encoding='utf-8') as translations_file:
+    try:
+        translations = yaml.safe_load(translations_file)[app_lang]
+        print('Translations have been successfully loaded from file.')
+    except yaml.YAMLError:
+        print("YAMLError: Error loading translations file.")
+        sys.exit(1)
+
+def msg(m, f=None):
+    try:
+        if f is None: return translations[m]
+        else: return translations[m].format(str(f))
+    except Exception as e: print(e)
 
 def toggle_rpc(Icon, item):
     global rpc_state
     rpc_state = not item.checked
 
 
-def exit(Icon, item):
-    icon_tray.stop()
+def exit(Icon, item): icon_tray.stop()
 
 if getattr(sys, 'frozen', False): directory = os.path.dirname(sys.executable)
 elif __file__: directory = os.path.dirname(__file__)
@@ -30,29 +55,27 @@ imageDir = os.path.join(directory, "assets/icon.png")
 root = tkinter.Tk()
 root.withdraw()
 
-try: im = Image.open(imageDir)
-except FileNotFoundError as identifier: messagebox.showerror('Error','Assets folder not found!')
-
 try: 
-    f = open(usernameFile, 'r')
-    username = f.read()
-    print(f"Last.fm username: {username}")
-    User = LastFmUser(username, 2)
-    menu_icon = Menu(
-    item('User: '+username, None),
-    item('Enable Rich Presence',toggle_rpc, checked=lambda item: rpc_state),
-    Menu.SEPARATOR,
-    item('Exit', exit))
-    icon_tray = Icon(
-        'Last.fm Discord Rich Presence',
-        icon=im,
-        title="Last.fm Discord Rich Presence",
-        menu=menu_icon)
+    icon_img = Image.open(imageDir)
+except FileNotFoundError as identifier: messagebox.showerror(msg('err'), msg('err_assets'))
 
-except FileNotFoundError as identifier: messagebox.showerror('Error',f'File {usernameFile} not found!')
+print(msg('fm_user_msg', username))
+User = LastFmUser(username, 2)
+
+menu_icon = Menu(
+    item(msg('user', username), None),
+    item(msg('enable_rpc'),toggle_rpc, checked=lambda item: rpc_state),
+    Menu.SEPARATOR,
+    item(msg('exit'), exit))
+
+icon_tray = Icon(
+    'Last.fm Discord Rich Presence',
+    icon=icon_img,
+    title="Last.fm Discord Rich Presence",
+    menu=menu_icon)
 
 def RPCFunction(loop):
-    print("Starting RPC")
+    print(msg('starting_rpc'))
     asyncio.set_event_loop(loop)
     while True:
         if rpc_state == True: User.now_playing()
