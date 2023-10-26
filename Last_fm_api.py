@@ -38,7 +38,6 @@ class LastFmUser:
         current_track = None
         try:
             current_track = self.user.get_now_playing()
-            pass
         except pylast.WSError:
             print(translations['pylast_ws_error'].format(str(self.cooldown)))
             pass
@@ -50,21 +49,28 @@ class LastFmUser:
             pass
 
         if current_track is not None:
-            track = current_track
+            album, artwork, time_remaining = None, None, 0
             try:
-                album,time_remaining = None, 0
-                album = track.get_album()
-                title = track.get_title()
-                artist = track.get_artist()
-                artwork = album.get_cover_image()
-                time_remaining = track.get_duration()
-            except pylast.WSError:
+                title = current_track.get_title()
+                artist = current_track.get_artist()
+                album = current_track.get_album()
+                if album: artwork = album.get_cover_image()
+                time_remaining = current_track.get_duration()
+            except pylast.WSError as e:
+                print(f'pylast.WSError: {e}')
                 pass
             except pylast.NetworkError:
                 print(translations['pylast_network_error'])
                 pass
             RPC.enable_RPC()
-            RPC.update_Status(str(track), str(title), str(artist), str(album), time_remaining, self.username, artwork)
+            RPC.update_Status(
+                str(current_track),
+                str(title),
+                str(artist),
+                str(album),
+                time_remaining,
+                self.username,
+                artwork)
             time.sleep(self.cooldown+8)
         else:
             print(translations['no_song'].format(str(self.cooldown)))
