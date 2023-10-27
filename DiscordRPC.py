@@ -143,15 +143,25 @@ def enable_RPC():
         already_disabled = False
 
 def update_Status(track, title, artist, album, time_remaining, username, artwork):
+    # print name and value
+    for f in [track, title, artist, album, time_remaining, username, artwork]:
+        print(f)
     global start_time, LastTrack
     if len(title) < 2: title = title + ' '
-    if LastTrack == track: pass#if the track is the same as the last track, don't update the status
-    else: #if the track is different, update the status
+    if LastTrack == track: pass # if the track is the same as the last track, don't update the status
+    else: # if the track is different, update the status
+        albumBool = album is not None
+        timeRemainingBool = time_remaining > 0
+        if timeRemainingBool:
+            time_remaining = str(time_remaining)[0:3]
+        
+        print(f'Album: {albumBool:5}: {album}')
+        print(f'Time Remaining: {timeRemainingBool}: {time_remaining}')
+       
         print("Now Playing: " + track)
         start_time = datetime.datetime.now().timestamp()
         LastTrack = track
         trackArtistAlbum = f'{artist} - {album}'
-        time_remaining = str(time_remaining)[0:3]
 
         rpcButtons = [
         {"label": "View Track", "url": str(f"https://www.last.fm/tr/user/{username}/library/music/{urlEncoder(artist)}/_/{urlEncoder(title)}")},
@@ -160,17 +170,14 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
        #{"label": "View Last.fm Profile", "url": str(f"https://www.last.fm/user/{username}")}
 
         userInfos = getUserInfos(username)
-        
+
         displayName = userInfos["display_name"]
-        scrobbles = userInfos['header_status'][0]
-        artists = userInfos['header_status'][1]
-        lovedTracks = userInfos['header_status'][2]
-        
+        scrobbles, artists, lovedTracks = userInfos["header_status"] # unpacking
+
         print(json.dumps(userInfos, indent=2))
         libraryInfos = getLibraryInfo(username, artist, title)
         print(json.dumps(libraryInfos, indent=2))
 
-        
         rpcSmallImage = userInfos["avatar_url"]
 
         smallImageLines = {
@@ -221,10 +228,7 @@ def update_Status(track, title, artist, album, time_remaining, username, artwork
         if len(rpcSmallImageText) > 128: rpcSmallImageText = rpcSmallImageText.replace(xchar,'')
         if len(rpcLargeImageText) > 128: rpcLargeImageText = rpcLargeImageText.replace(xchar,'')
 
-        timeRemainingBool = time_remaining != '0'
-        albumBool = album != 'None'
-        print(f'Album: {albumBool:5}: {album}')
-        print(f'Time Remaining: {timeRemainingBool}: {time_remaining}')
+       
 
         updateAssets = {
             'details': title,
