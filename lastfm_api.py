@@ -62,8 +62,8 @@ class LastFmUser:
             except pylast.NetworkError:
                 print(translations['pylast_network_error'])
                 pass
-            RPC.enable_RPC()
-            RPC.update_Status(
+            RPC.enable()
+            RPC.update_status(
                 str(current_track),
                 str(title),
                 str(artist),
@@ -74,5 +74,5 @@ class LastFmUser:
             time.sleep(self.cooldown+8)
         else:
             print(translations['no_song'].format(str(self.cooldown)))
-            RPC.disable_RPC()
+            RPC.disable()
         time.sleep(self.cooldown)
