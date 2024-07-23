@@ -1,4 +1,4 @@
-import DiscordRPC as RPC
+import discord_rpc as RPC
 import pylast
 import time
 import yaml

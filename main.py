@@ -5,10 +5,10 @@ import yaml
 import tkinter
 import asyncio
 import threading
-import DiscordRPC
+import discord_rpc
 from PIL import Image
 from tkinter import messagebox
-from Last_fm_api import LastFmUser
+from lastfm_api import LastFmUser
 from pystray import Icon, Menu, MenuItem as item
 
 rpc_state = True
