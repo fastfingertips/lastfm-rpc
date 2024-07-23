@@ -36,19 +36,25 @@ with open('translations.yaml', 'r', encoding='utf-8') as translations_file:
 
 def msg(m, f=None):
     try:
-        if f is None: return translations[m]
-        else: return translations[m].format(str(f))
-    except Exception as e: print(e)
+        if f is None:
+            return translations[m]
+        else:
+            return translations[m].format(str(f))
+    except Exception as e:
+        print(e)
 
 def toggle_rpc(Icon, item):
     global rpc_state
     rpc_state = not item.checked
 
 
-def exit(Icon, item): icon_tray.stop()
+def exit(Icon, item):
+    icon_tray.stop()
 
-if getattr(sys, 'frozen', False): directory = os.path.dirname(sys.executable)
-elif __file__: directory = os.path.dirname(__file__)
+if getattr(sys, 'frozen', False):
+    directory = os.path.dirname(sys.executable)
+elif __file__:
+    directory = os.path.dirname(__file__)
 
 imageDir = os.path.join(directory, "assets/icon.png")
 
@@ -57,7 +63,8 @@ root.withdraw()
 
 try: 
     icon_img = Image.open(imageDir)
-except FileNotFoundError as identifier: messagebox.showerror(msg('err'), msg('err_assets'))
+except FileNotFoundError as identifier:
+    messagebox.showerror(msg('err'), msg('err_assets'))
 
 print(msg('fm_user_msg', username))
 User = LastFmUser(username, 2)
@@ -78,9 +85,10 @@ def RPCFunction(loop):
     print(msg('starting_rpc'))
     asyncio.set_event_loop(loop)
     while True:
-        if rpc_state == True: User.now_playing()
+        if rpc_state == True:
+            User.now_playing()
         else:
-            DiscordRPC.disconnect()
+            discord_rpc.disable()
             time.sleep(2)
 
 loop = asyncio.new_event_loop()
