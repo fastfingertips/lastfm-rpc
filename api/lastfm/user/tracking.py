@@ -46,3 +46,4 @@ class User:
             return current_track, self._get_track_info(current_track)
         else:
             logging.info(TRANSLATIONS['no_song'].format(self.cooldown))
+            return current_track, None
