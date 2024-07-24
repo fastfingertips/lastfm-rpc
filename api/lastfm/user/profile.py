@@ -1,9 +1,9 @@
+from helpers.request_utils import get_response, get_dom
+from helpers.string_utils import get_removal
 from libs.monitoring import logging
-from libs.helpers.request_utils import get_response, get_dom
-from libs.helpers.string_utils import get_removal
-from constants.project import DEFAULT_AVATAR_ID
-from os.path import splitext
+from libs.system import os
 
+from constants.project import DEFAULT_AVATAR_ID
 
 def parse_user_display_name(page_content):
     """
@@ -35,7 +35,7 @@ def parse_user_avatar_url(page_content):
     try:
         user_avatar_url = page_content.find("meta", property="og:image")["content"]
         user_avatar_url = user_avatar_url.replace("/avatar170s", "")
-        avatar_suffix = splitext(user_avatar_url)[1]
+        avatar_suffix = os.path.splitext(user_avatar_url)[1]
         user_avatar_url = user_avatar_url.replace(avatar_suffix, ".gif")
         if DEFAULT_AVATAR_ID in user_avatar_url:
             # "No Avatar (Last.fm default avatar)"
