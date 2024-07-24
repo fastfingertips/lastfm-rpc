@@ -1,9 +1,8 @@
+from typing import Tuple, Dict
+import logging
 import yaml
 import sys
-import logging
-from typing import Tuple, Dict
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def load_yaml_file(file_path: str) -> dict:
