@@ -1,12 +1,10 @@
 from api.lastfm.user.library import get_library_data
 from api.lastfm.user.profile import get_user_data
-from helpers.url_utils import url_encoder
+from libs.helpers.url_utils import url_encoder
+from libs.monitoring import logging
 from constants.project import CLIENT_ID
 from pypresence import Presence
 import datetime
-import logging
-
-logging.basicConfig(level=logging.INFO)
 
 class DiscordRPC:
     def __init__(self):
