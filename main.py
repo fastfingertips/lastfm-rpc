@@ -1,18 +1,19 @@
-import os
-import sys
-import time
-import asyncio
 import threading
+import logging
+import asyncio
+import time
+import sys
+import os
 
-from PIL import Image
-from tkinter import messagebox
 from pystray import Icon, Menu, MenuItem
+from tkinter import messagebox
+from PIL import Image
 
 from helpers.string_utils import messenger
-from api.discord.rpc import DiscordRPC
 from api.lastfm.user.tracking import User
+from api.discord.rpc import DiscordRPC
 from constants.project import USERNAME
-import logging
+
 
 logging.basicConfig(level=logging.INFO)
 
