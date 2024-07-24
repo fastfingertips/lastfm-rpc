@@ -1,11 +1,7 @@
 from constants.project import API_KEY, API_SECRET, TRANSLATIONS
 from api.discord.rpc import DiscordRPC
+from libs.monitoring import logging
 import pylast
-import time
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 
 network = pylast.LastFMNetwork(API_KEY, API_SECRET)
 rpc = DiscordRPC()
