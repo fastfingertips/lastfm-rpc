@@ -1,6 +1,6 @@
-from libs.helpers.request_utils import get_response, get_dom
-from libs.helpers.string_utils import get_removal
-from libs.helpers.url_utils import url_encoder
+from helpers.request_utils import get_response, get_dom
+from helpers.string_utils import get_removal
+from helpers.url_utils import url_encoder
 
 def get_library_data(username, artist_name, track_name) -> dict:
 
