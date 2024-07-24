@@ -1,6 +1,6 @@
+from bs4 import BeautifulSoup
 import requests
 import time
-from bs4 import BeautifulSoup
 
 def get_response(url):  # Get the response of the request
     """
@@ -15,9 +15,11 @@ def get_response(url):  # Get the response of the request
     while True:
         response = requests.get(url)
         response_code = response.status_code
-        print(response_code, url)
+        
         if response_code in range(200, 299):
             return response
+        else:
+            print(response_code, url)
         time.sleep(2)
 
 def get_dom(response) -> BeautifulSoup:
