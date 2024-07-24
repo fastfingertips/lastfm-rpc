@@ -43,7 +43,6 @@ class User:
     def now_playing(self):
         current_track = self._get_current_track()
         if current_track:
-            data = self._get_track_info(current_track)
-            return current_track, data
+            return current_track, self._get_track_info(current_track)
         else:
             logging.info(TRANSLATIONS['no_song'].format(self.cooldown))
