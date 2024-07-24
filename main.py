@@ -33,13 +33,11 @@ if getattr(sys, 'frozen', False):
 elif __file__:
     directory = os.path.dirname(__file__)
 
-image_dir = os.path.join(directory, "assets/icon.png")
-
 root = tkinter.Tk()
 root.withdraw()
 
 try: 
-    icon_img = Image.open(image_dir)
+    icon_img = Image.open(os.path.join(directory, "assets/last_fm.png"))
 except FileNotFoundError as identifier:
     messagebox.showerror(messenger('err'), messenger('err_assets'))
 
