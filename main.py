@@ -1,5 +1,4 @@
 import threading
-import logging
 import asyncio
 import time
 import sys
@@ -10,11 +9,10 @@ from tkinter import messagebox
 from PIL import Image
 
 from constants.project import USERNAME, APP_NAME
-from helpers.string_utils import messenger
+from libs.helpers.string_utils import messenger
+from libs.monitoring import logging
 from api.lastfm.user.tracking import User
 from api.discord.rpc import DiscordRPC
-
-logging.basicConfig(level=logging.INFO)
 
 class App:
     def __init__(self):
