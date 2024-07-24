@@ -1,7 +1,9 @@
-from constants.project import API_KEY, API_SECRET, TRANSLATIONS
 from api.discord.rpc import DiscordRPC
+from api.lastfm import pylast
+
 from libs.monitoring import logging
-import pylast
+
+from constants.project import API_KEY, API_SECRET, TRANSLATIONS
 
 network = pylast.LastFMNetwork(API_KEY, API_SECRET)
 rpc = DiscordRPC()
