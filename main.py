@@ -9,11 +9,10 @@ from pystray import Icon, Menu, MenuItem
 from tkinter import messagebox
 from PIL import Image
 
+from constants.project import USERNAME, APP_NAME
 from helpers.string_utils import messenger
 from api.lastfm.user.tracking import User
 from api.discord.rpc import DiscordRPC
-from constants.project import USERNAME
-
 
 logging.basicConfig(level=logging.INFO)
 
@@ -57,9 +56,9 @@ class App:
             MenuItem(messenger('exit'), self.exit_app)
         )
         return Icon(
-            'Last.fm Discord Rich Presence',
+            APP_NAME,
             icon=icon_img,
-            title="Last.fm Discord Rich Presence",
+            title=APP_NAME,
             menu=menu_icon
         )
 
