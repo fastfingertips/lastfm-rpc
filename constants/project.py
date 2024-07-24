@@ -1,4 +1,4 @@
-from helpers.system.reader import load_config, load_translations
+from libs.helpers.system.reader import load_config, load_translations
 
 USERNAME, API_KEY, API_SECRET, APP_LANG = load_config()
 
