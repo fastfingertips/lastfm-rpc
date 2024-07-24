@@ -1,86 +1,99 @@
 import os
 import sys
-import tkinter
+import time
 import asyncio
 import threading
+import logging
 from PIL import Image
 from tkinter import messagebox
 from pystray import Icon, Menu, MenuItem as item
 
 from helpers.string_utils import messenger
-from api.discord_rpc_api import DiscordRPC
-from api.lastfm_api import LastFmUser
+from api.discord.rpc import DiscordRPC
+from api.lastfm.user.tracking import User
+from constants.project import USERNAME
 
-from constants.project import (
-    API_SECRET,
-    CLIENT_ID,
-    USERNAME,
-    API_KEY
-)
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
-rpc = DiscordRPC(CLIENT_ID)
-rpc_state = True
+class App:
+    def __init__(self):
+        self.rpc = DiscordRPC()
+        self.icon_tray = self.setup_tray_icon()
+        self.loop = asyncio.new_event_loop()
+        self.rpc_thread = threading.Thread(target=self.run_rpc, args=(self.loop,))
+        self.rpc_thread.daemon = True
 
-def toggle_rpc(Icon, item):
-    global rpc_state
-    rpc_state = not item.checked
+    def exit_app(self, icon, item):
+        """Stops the system tray icon and exits the application."""
+        logging.info("Exiting application.")
+        icon.stop()
+        sys.exit()
 
-def exit(Icon, item):
-    icon_tray.stop()
+    def get_directory(self):
+        """Returns the directory of the executable or script."""
+        if getattr(sys, 'frozen', False):
+            return os.path.dirname(sys.executable)
+        elif __file__:
+            return os.path.dirname(__file__)
+        return ''
 
-if getattr(sys, 'frozen', False):
-    directory = os.path.dirname(sys.executable)
-elif __file__:
-    directory = os.path.dirname(__file__)
+    def load_icon(self, directory):
+        """Loads the application icon from the assets directory."""
+        try:
+            return Image.open(os.path.join(directory, "assets/last_fm.png"))
+        except FileNotFoundError:
+            messagebox.showerror(messenger('err'), messenger('err_assets'))
+            sys.exit(1)
 
-root = tkinter.Tk()
-root.withdraw()
+    def setup_tray_icon(self):
+        """Sets up the system tray icon with menu options."""
+        directory = self.get_directory()
+        icon_img = self.load_icon(directory)
+        menu_icon = Menu(
+            item(messenger('user', USERNAME), None),
+            Menu.SEPARATOR,
+            item(messenger('exit'), self.exit_app)
+        )
+        return Icon(
+            'Last.fm Discord Rich Presence',
+            icon=icon_img,
+            title="Last.fm Discord Rich Presence",
+            menu=menu_icon
+        )
 
-try: 
-    icon_img = Image.open(os.path.join(directory, "assets/last_fm.png"))
-except FileNotFoundError as identifier:
-    messagebox.showerror(messenger('err'), messenger('err_assets'))
+    def run_rpc(self, loop):
+        """Runs the RPC updater in a loop."""
+        logging.info(messenger('starting_rpc'))
+        asyncio.set_event_loop(loop)
+        user = User(USERNAME)
 
-print(messenger('fm_user_msg', USERNAME))
-User = LastFmUser(API_KEY, API_SECRET, USERNAME)
-
-menu_icon = Menu(
-    item(messenger('user', USERNAME), None),
-    item(messenger('enable_rpc'),toggle_rpc, checked=lambda item: rpc_state),
-    Menu.SEPARATOR,
-    item(messenger('exit'), exit))
-
-icon_tray = Icon(
-    'Last.fm Discord Rich Presence',
-    icon=icon_img,
-    title="Last.fm Discord Rich Presence",
-    menu=menu_icon)
-
-def app(loop):
-    print(messenger('starting_rpc'))
-    asyncio.set_event_loop(loop)
-    while True:
-        if rpc_state:
-            data = User.now_playing()
-            if data:
-                current_track, title, artist, album, artwork, time_remaining = data
-                rpc.enable()
-                rpc.update_status(
-                    str(current_track),
-                    str(title),
-                    str(artist),
-                    str(album),
-                    time_remaining,
-                    USERNAME,
-                    artwork
+        while True:
+            try:
+                data = user.now_playing()
+                if data:
+                    current_track, title, artist, album, artwork, time_remaining = data
+                    self.rpc.enable()
+                    self.rpc.update_status(
+                        str(current_track),
+                        str(title),
+                        str(artist),
+                        str(album),
+                        time_remaining,
+                        USERNAME,
+                        artwork
                     )
-                continue
-        rpc.disable()
+                else:
+                    self.rpc.disable()
+            except Exception as e:
+                logging.error(f"Unexpected error: {e}")
+            time.sleep(1)  # Adjust this if necessary to avoid excessive CPU usage
 
-loop = asyncio.new_event_loop()
+    def run(self):
+        """Starts the system tray application and RPC thread."""
+        self.rpc_thread.start()
+        self.icon_tray.run()
 
-rpc_thread = threading.Thread(target=app, args=(loop,))
-rpc_thread.daemon = True
-rpc_thread.start()
-
-icon_tray.run()
+if __name__ == "__main__":
+    app = App()
+    app.run()
