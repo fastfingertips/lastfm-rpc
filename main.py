@@ -3,17 +3,17 @@ import sys
 import time
 import asyncio
 import threading
-import logging
+
 from PIL import Image
 from tkinter import messagebox
-from pystray import Icon, Menu, MenuItem as item
+from pystray import Icon, Menu, MenuItem
 
 from helpers.string_utils import messenger
 from api.discord.rpc import DiscordRPC
 from api.lastfm.user.tracking import User
 from constants.project import USERNAME
+import logging
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 
 class App:
@@ -51,9 +51,9 @@ class App:
         directory = self.get_directory()
         icon_img = self.load_icon(directory)
         menu_icon = Menu(
-            item(messenger('user', USERNAME), None),
+            MenuItem(messenger('user', USERNAME), None),
             Menu.SEPARATOR,
-            item(messenger('exit'), self.exit_app)
+            MenuItem(messenger('exit'), self.exit_app)
         )
         return Icon(
             'Last.fm Discord Rich Presence',
