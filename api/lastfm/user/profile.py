@@ -1,10 +1,9 @@
-import logging
-from helpers.request_utils import get_response, get_dom
-from helpers.string_utils import get_removal
+from libs.monitoring import logging
+from libs.helpers.request_utils import get_response, get_dom
+from libs.helpers.string_utils import get_removal
 from constants.project import DEFAULT_AVATAR_ID
 from os.path import splitext
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def parse_user_display_name(page_content):
     """
