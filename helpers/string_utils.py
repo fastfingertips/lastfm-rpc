@@ -1,3 +1,12 @@
+from constants.project import TRANSLATIONS
+
+def messenger(key, f=None):
+    try:
+        return TRANSLATIONS[key].format(str(f)) if f else TRANSLATIONS[key]
+    except Exception as e:
+        raise Exception(f'Error in messenger: {e}')
+
+
 def get_removal(inside_obj, find_obj=' ', return_type=None):
     """
     Removes occurrences of `find_obj` from `inside_obj` and converts the result to the specified type if needed.
