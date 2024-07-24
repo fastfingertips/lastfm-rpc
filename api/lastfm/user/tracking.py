@@ -43,22 +43,9 @@ class User:
         return title, artist, album, artwork, time_remaining
 
     def now_playing(self):
-        while True:
-            current_track = self._get_current_track()
-            if current_track:
-                title, artist, album, artwork, time_remaining = self._get_track_info(current_track)
-                rpc.enable()
-                rpc.update_status(
-                    str(current_track),
-                    str(title),
-                    str(artist),
-                    str(album),
-                    time_remaining,
-                    self.username,
-                    artwork
-                )
-                time.sleep(self.cooldown + 8)
-            else:
-                logging.info(TRANSLATIONS['no_song'].format(self.cooldown))
-                rpc.disable()
-            time.sleep(self.cooldown)
+        current_track = self._get_current_track()
+        if current_track:
+            data = self._get_track_info(current_track)
+            return current_track, data
+        else:
+            logging.info(TRANSLATIONS['no_song'].format(self.cooldown))
