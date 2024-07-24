@@ -1,7 +1,7 @@
 from libs.web_requests import requests
 from libs.scrapers import BeautifulSoup
 from libs.monitoring import logging
-import time
+from libs.system import time
 
 def get_response(url: str, retry_interval: int = 2, max_retries: int = 10) -> requests.Response:
     """

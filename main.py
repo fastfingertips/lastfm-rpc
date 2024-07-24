@@ -1,7 +1,3 @@
-import threading
-import asyncio
-import time
-
 from pystray import Icon, Menu, MenuItem
 from tkinter import messagebox
 from PIL import Image
@@ -12,7 +8,8 @@ from api.discord.rpc import DiscordRPC
 from helpers.string_utils import messenger
 
 from libs.monitoring import logging
-from libs.system import sys, os
+from libs.system import threading, time, sys, os
+from libs.web_requests import asyncio
 
 from constants.project import USERNAME, APP_NAME
 
