@@ -70,9 +70,9 @@ class App:
 
         while True:
             try:
-                data = user.now_playing()
+                current_track, data = user.now_playing()
                 if data:
-                    current_track, title, artist, album, artwork, time_remaining = data
+                    title, artist, album, artwork, time_remaining = data
                     self.rpc.enable()
                     self.rpc.update_status(
                         str(current_track),
@@ -83,11 +83,12 @@ class App:
                         USERNAME,
                         artwork
                     )
+                    time.sleep(5)
                 else:
                     self.rpc.disable()
             except Exception as e:
                 logging.error(f"Unexpected error: {e}")
-            time.sleep(1)  # Adjust this if necessary to avoid excessive CPU usage
+            time.sleep(2)
 
     def run(self):
         """Starts the system tray application and RPC thread."""
