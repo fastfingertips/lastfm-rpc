@@ -4,7 +4,6 @@ from helpers.string_utils import get_removal
 from helpers.url_utils import url_encoder
 from pypresence import Presence
 import datetime
-import json
 import os
 
 class DiscordRPC:
@@ -80,13 +79,13 @@ class DiscordRPC:
             ]
 
             user_data = get_user_data(username)
-            print(json.dumps(user_data, indent=2))
+            #print(json.dumps(user_data, indent=2))
 
             user_display_name = user_data["display_name"]
             scrobbles, artists, loved_tracks = user_data["header_status"] # unpacking
 
             library_data = get_library_data(username, artist, title)
-            print(json.dumps(library_data, indent=2))
+            #print(json.dumps(library_data, indent=2))
 
             rpc_small_image = user_data["avatar_url"]
             artist_count = library_data["artist_count"]
