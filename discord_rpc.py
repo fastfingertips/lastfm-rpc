@@ -1,3 +1,4 @@
+from constants.project import CLIENT_ID, DEFAULT_AVATAR_ID
 from helpers.request_utils import get_response, get_dom
 from helpers.string_utils import get_removal
 from helpers.url_utils import url_encoder
@@ -6,7 +7,6 @@ import datetime
 import json
 import os
 
-CLIENT_ID = '702984897496875072'
 RPC = Presence(CLIENT_ID)
 enabled = False
 disabled = True
@@ -16,8 +16,6 @@ last_track = None
 def get_user_data(username) -> dict:
 
     USER_PROFILE_URL = f'https://www.last.fm/user/{username}'
-    DEFAULT_AVATAR_ID = "818148bf682d429dc215c1705eb27b98"
-    DEFAULT_AVATAR_URL = f"https://lastfm.freetls.fastly.net/i/u/avatar170s/{DEFAULT_AVATAR_ID}.png"
 
     def parse_user_display_name(page_content):
                 # get the display name of the user
@@ -27,10 +25,14 @@ def get_user_data(username) -> dict:
 
     def parse_user_avatar_url(page_content):
         # get the avatar url of the user
-        user_avatar_url = page_content.find("meta", property="og:image")["content"] # find the profile avatar url
-        user_avatar_url = user_avatar_url.replace("/avatar170s","") # remove the size of the avatar
-        avatar_suffix = os.path.splitext(user_avatar_url)[1] # get the suffix of the avatar
-        user_avatar_url = user_avatar_url.replace(avatar_suffix, ".gif") # replace the suffix with .gif
+        # find the profile avatar url
+        user_avatar_url = page_content.find("meta", property="og:image")["content"]
+        # remove the size of the avatar
+        user_avatar_url = user_avatar_url.replace("/avatar170s","")
+        # get the suffix of the avatar
+        avatar_suffix = os.path.splitext(user_avatar_url)[1]
+        # replace the suffix with .gif
+        user_avatar_url = user_avatar_url.replace(avatar_suffix, ".gif")
         if DEFAULT_AVATAR_ID in user_avatar_url:
             # "No Avatar (Last.fm default avatar)"
             user_avatar_url = None
@@ -42,7 +44,8 @@ def get_user_data(username) -> dict:
         headers = page_content.find_all("div", {"class": "header-metadata-display"})
         for i in range(len(headers)):
             header_status[i] = headers[i].text.strip()
-            header_status[i] = get_removal(header_status[i],',', int) # {} içerisindeki {}'i kaldır ve {} olarak geri al.
+            # {} içerisindeki {}'i kaldır ve {} olarak geri al.
+            header_status[i] = get_removal(header_status[i],',', int)
         return header_status
 
     while True:
@@ -58,47 +61,29 @@ def get_user_data(username) -> dict:
 
             return data
 
-def get_library_data(username, artistName, trackName):
+def get_library_data(username, artist_name, track_name):
 
-    def parse_artist_count(dom):
+    USER_LIBRARY_URL = f'https://www.last.fm/user/{username}/library'
+    # + ?date_preset=ALL (login req)
+    USER_LIBRARY_ARTIST_URL = "/".join([USER_LIBRARY_URL, "music", "+noredirect", url_encoder(artist_name)])
+    USER_LIBRARY_TRACK_URL = "/".join([USER_LIBRARY_URL, "music", "+noredirect", url_encoder(artist_name), "_", url_encoder(track_name)])
+
+    def parse_count(dom):
         data = dom.find_all("p", {"class":"metadata-display"})
         if bool(data):
-            data = data[0].text if len(data) != 0 else '0' # if there is no artist info, return 0
-        else: # empty list
+            # if there is no artist info, return 0
+            data = data[0].text if len(data) != 0 else '0' 
+            data = get_removal(data,',', int)
+        else:
+            # empty list
             print('Arist info is empty list')
             data = 0
         return data
 
-    def parse_track_count(dom):
-        data = dom.find_all("p", {"class":"metadata-display"})
-        if bool(data):
-            data = data[0].text if len(data) != 0 else '0' # if there is no track info, return 0
-        else: # empty list
-            print('Track info is empty list')
-            data = 0
-        return data
-
-    user_library_url = f'https://www.last.fm/user/{username}/library/music'
-    libs = {
-        "artists_url" : f'{user_library_url}/+noredirect/{url_encoder(artistName)}', # + ?date_preset=ALL (login req)
-        "tracks_url" : f'{user_library_url}/+noredirect/{url_encoder(artistName)}/_/{url_encoder(trackName)}' # + ?date_preset=ALL (login req)
-        }
-    data = {}
-
-    for url in libs:
-        response = get_response(libs[url])
-        dom = get_dom(response)
-
-        if libs[url] == libs["artists_url"]: # if the url is the artist url
-            artist_count = parse_artist_count(dom)
-            data["artist_count"] = get_removal(artist_count,',', int)
-            # print(f'{artistName}: {data["artist_count"]}')
-        elif libs[url] == libs["tracks_url"]: # if the url is the track url
-            track_count = parse_track_count(dom)
-            data["track_count"] = get_removal(track_count,',', int)
-            # print(f'{artistName} - {trackName}: {data["track_count"]}')
-        else:
-            print("This url is not supported:", libs[url])
+    data = {
+         'artist_count': parse_count(get_dom(get_response(USER_LIBRARY_ARTIST_URL))),
+         'track_count': parse_count(get_dom(get_response(USER_LIBRARY_TRACK_URL)))
+         }
 
     return data
 
@@ -158,14 +143,17 @@ def update_status(track, title, artist, album, time_remaining, username, artwork
             "loved_tracks": f'Loved Tracks: {loved_tracks}'}
 
         # artwork
-        if artwork == None: # if there is no artwork, use the default one
+        if artwork == None:
+             # if there is no artwork, use the default one
             now = datetime.datetime.now()
-            is_day = now.hour >= 18 or now.hour < 9  #day: false, night: true
+            #day: false, night: true
+            is_day = now.hour >= 18 or now.hour < 9 
             artwork = 'https://i.imgur.com/GOVbNaF.png' if is_day else 'https://i.imgur.com/kvGS4Pa.png'
             large_image_lines['theme'] = f"{'Night' if is_day else 'Day'} Mode Cover"
         else: pass
 
-        if artist_count: # if the artist is in the library
+        if artist_count:
+            # if the artist is in the library
             track_count = library_data["track_count"]
             large_image_lines["artist_scrobbles"] = f'Scrobbles: {artist_count}/{track_count}' if track_count else f'Scrobbles: {artist_count}'
         else:
@@ -174,22 +162,22 @@ def update_status(track, title, artist, album, time_remaining, username, artwork
         # line process
         rpc_small_image_text = ''
         rpc_large_image_text = ''
-        lineLimit = 26
+        line_limit = 26
         xchar = ' '
 
         print(len(large_image_lines), large_image_lines)
         for line_key in small_image_lines:
             line = f'{small_image_lines[line_key]} '
-            lineSuffix = "" if len(line) > 20 else (lineLimit - len(line) - sum(_.isupper() for _ in line))*xchar
-            rpc_small_image_text += f'{line}{lineSuffix} '
+            line_suffix = "" if len(line) > 20 else (line_limit - len(line) - sum(_.isupper() for _ in line))*xchar
+            rpc_small_image_text += f'{line}{line_suffix} '
 
         for line_key in large_image_lines:
             line = f'{large_image_lines[line_key]} '
             if len(large_image_lines) == 1: rpc_large_image_text = line
             else:
-                """lineSuffix = "" if len(line) > 20 else (lineLimit - len(line) - sum(_.isupper() for _ in line))*xchar
-                rpc_large_image_text += f'{line}{lineSuffix} '"""
-                rpc_large_image_text += f'{line}{(lineLimit - len(line) - sum(_.isupper() for _ in line))*xchar} '
+                """line_suffix = "" if len(line) > 20 else (line_limit - len(line) - sum(_.isupper() for _ in line))*xchar
+                rpc_large_image_text += f'{line}{line_suffix} '"""
+                rpc_large_image_text += f'{line}{(line_limit - len(line) - sum(_.isupper() for _ in line))*xchar} '
 
          # if the text is too long, cut it
         if len(rpc_small_image_text) > 128:
@@ -219,7 +207,6 @@ def update_status(track, title, artist, album, time_remaining, username, artwork
         except Exception as e:
             print('x', e)
 
-
 def enable():
     """
     Connects to Discord if not already connected.
@@ -230,7 +217,7 @@ def enable():
     """
     global enabled, disabled
     if not enabled:
-        RPC.connect()  # Establish the connection to Discord
+        RPC.connect() # Establish the connection to Discord
         print('Connected with Discord')
         enabled = True
         disabled = False
@@ -245,8 +232,8 @@ def disable():
     """
     global enabled, disabled
     if not disabled:
-        RPC.clear()  # Clear the current RPC state
-        RPC.close()  # Close the connection to Discord
+        RPC.clear() # Clear the current RPC state
+        RPC.close() # Close the connection to Discord
         print('Disconnected from Discord due to inactivity on Last.fm')
         disabled = True
         enabled = False
