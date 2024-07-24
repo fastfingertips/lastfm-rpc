@@ -1,0 +1,3 @@
+CLIENT_ID = '702984897496875072'
+DEFAULT_AVATAR_ID = "818148bf682d429dc215c1705eb27b98"
+DEFAULT_AVATAR_URL = f"https://lastfm.freetls.fastly.net/i/u/avatar170s/{DEFAULT_AVATAR_ID}.png"
