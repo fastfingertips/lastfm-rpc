@@ -1,17 +1,18 @@
-from pystray import Icon, Menu, MenuItem
-from tkinter import messagebox
-from PIL import Image
-
+from constants.project import USERNAME, APP_NAME
+from helpers.string_utils import messenger
 from api.lastfm.user.tracking import User
 from api.discord.rpc import DiscordRPC
-
-from helpers.string_utils import messenger
-
-from libs.monitoring import logging
-from libs.system import threading, time, sys, os
 from libs.web_requests import asyncio
-
-from constants.project import USERNAME, APP_NAME
+from libs.monitoring import logging
+from libs.system import (
+    Icon, Menu, MenuItem,
+    messagebox,
+    threading,
+    Image,
+    time,
+    sys,
+    os
+    )
 
 class App:
     def __init__(self):
