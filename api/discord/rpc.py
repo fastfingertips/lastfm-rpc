@@ -1,13 +1,10 @@
 from api.lastfm.user.library import get_library_data
 from api.lastfm.user.profile import get_user_data
-from api.discord import Presence
-
+from api.discord import Presence, exceptions
 from helpers.url_utils import url_encoder
-
-from libs.monitoring import logging
-from libs.system import datetime
-
 from constants.project import CLIENT_ID
+from libs.system import datetime, time
+from libs.monitoring import logging
 
 class DiscordRPC:
     def __init__(self):
@@ -17,7 +14,14 @@ class DiscordRPC:
         Sets up the Presence object for Discord Rich Presence and initializes
         state variables.
         """
-        self.RPC = Presence(CLIENT_ID)
+        while True:
+            try:
+                self.RPC = Presence(CLIENT_ID)
+                break
+            except exceptions.DiscordNotFound as e:
+                logging.error(f"Discord not found: {e}")
+                time.sleep(5)
+
         self._enabled = False
         self._disabled = True
         self.start_time = None
