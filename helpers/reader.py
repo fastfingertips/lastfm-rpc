@@ -41,7 +41,7 @@ def load_config(config_path: str = "config.yaml") -> Tuple[str, str, str, str]:
         logging.error(f"Configuration file missing key: {e}")
         sys.exit(1)
 
-def load_translations(app_lang: str, translations_path: str = 'translations/project.yaml') -> Dict[str, str]:
+def load_translations(app_lang: str, translations_path: str) -> Dict[str, str]:
     """
     Load the translations file and return the translations for the specified language.
     
