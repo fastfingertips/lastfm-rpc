@@ -1,1 +1,1 @@
-from pypresence import Presence
+from pypresence import Presence, exceptions
