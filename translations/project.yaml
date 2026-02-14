@@ -101,7 +101,7 @@ ES:
   connected_with_time: "Conectado a las {}"
   artist_scrobbles: "{} - {} Scrobbles"
   stats_loading: ">> Cargando estadísticas..."
-  stats_idle: "Estadístcas (Visible durante la reproducción)"
+  stats_idle: "Estadísticas (Visible durante la reproducción)"
   disconnected: "Desconectado"
   menu_small_image_options: "Opciones de imagen pequeña"
   menu_large_image_options: "Opciones de imagen grande"
