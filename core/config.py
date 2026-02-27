@@ -110,9 +110,9 @@ class ConfigManager:
     def save(self, username: str, api_key: str, api_secret: str, lang: str) -> bool:
         """Saves new configuration values to the YAML file."""
         self._config = AppConfig(
-            user=UserConfig(USERNAME=username),
-            api=ApiConfig(KEY=api_key, SECRET=api_secret),
-            app=AppSettingsConfig(LANG=lang),
+            USER=UserConfig(USERNAME=username),
+            API=ApiConfig(KEY=api_key, SECRET=api_secret),
+            APP=AppSettingsConfig(LANG=lang),
         )
 
         # Convert to YAML-friendly dict using aliases

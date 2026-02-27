@@ -87,6 +87,10 @@ def get_user_data(username) -> UserState:
     response = get_response(USER_PROFILE_URL)
     state = UserState(username=username)
 
+    if response is None:
+        logger.error(f"Failed to retrieve user data for {username}, no response")
+        return state
+
     if response.status_code in range(200, 299):
         dom = get_dom(response)
         state.display_name = parse_user_display_name(dom)

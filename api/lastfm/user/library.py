@@ -24,9 +24,12 @@ def get_library_data(username, artist_name, track_name) -> dict:
 
         return data
 
+    artist_response = get_response(USER_LIBRARY_ARTIST_URL)
+    track_response = get_response(USER_LIBRARY_TRACK_URL)
+
     data = {
-        "artist_count": parse_count(get_dom(get_response(USER_LIBRARY_ARTIST_URL))),
-        "track_count": parse_count(get_dom(get_response(USER_LIBRARY_TRACK_URL))),
+        "artist_count": parse_count(get_dom(artist_response)) if artist_response else 0,
+        "track_count": parse_count(get_dom(track_response)) if track_response else 0,
     }
 
     return data

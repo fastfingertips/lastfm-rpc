@@ -3,7 +3,7 @@ from loguru import logger
 from constants.project import RPC_LINE_LIMIT, RPC_XCHAR
 
 
-def format_rpc_text(lines: dict, limit: int = RPC_LINE_LIMIT, xchar: str = RPC_XCHAR) -> str:
+def format_rpc_text(lines: dict, limit: int = RPC_LINE_LIMIT, xchar: str = RPC_XCHAR) -> str | None:
     """
     Formats multi-line text for Discord RPC hover previews using a padding character
     to force line wraps (Discord doesn't natively support newlines in hover text).
