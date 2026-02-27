@@ -6,6 +6,7 @@ import os
 
 import constants.project as project
 from utils.string_utils import messenger
+from api.lastfm.models import TrackInfo
 from api.lastfm.user.tracking import User
 from api.discord.rpc import DiscordRPC
 from core.tray import TrayManager
@@ -86,10 +87,9 @@ class App:
         logger.info(f"Set large image mode to {'Scrobbles' if show_scrobbles else 'Album Name'}. Triggering update.")
         self.update_event.set()
 
-    def _handle_active_track(self, current_track, data, is_forced_update=False):
+    def _handle_active_track(self, current_track, info: TrackInfo, is_forced_update=False):
         """Handle the case where a track is playing."""
-        title, artist, album, artwork, time_remaining = data
-        formatted_track = f"{artist} - {title}"
+        formatted_track = f"{info.artist} - {info.title}"
         new_track_display = messenger('now_playing', formatted_track)
         
         # 1. IMMEDIATE UI UPDATE
@@ -108,8 +108,7 @@ class App:
 
         # 2. HEAVY DATA UPDATE
         self.rpc.update_status(
-            str(current_track), str(title), str(artist), str(album),
-            time_remaining, project.USERNAME, artwork, force=is_forced_update
+            current_track, info, project.USERNAME, force=is_forced_update
         )
         
         # 3. Refresh menu if changed

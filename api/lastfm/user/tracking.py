@@ -1,6 +1,7 @@
 from loguru import logger
 import pylast
 import constants.project as project
+from api.lastfm.models import TrackInfo
 
 logger = logger.bind(name='lastfm')
 
@@ -37,24 +38,29 @@ class User:
             logger.error(project.TRANSLATIONS['pylast_malformed_response_error'])
         return None
 
-    def _get_track_info(self, current_track):
-        title, artist, album, artwork, time_remaining = None, None, None, None, 0
+    def _get_track_info(self, current_track) -> TrackInfo:
+        info = TrackInfo()
         try:
-            title = current_track.get_title()
-            artist = current_track.get_artist()
+            info.title = current_track.get_title()
+            info.artist = current_track.get_artist().get_name()
+            
             album = current_track.get_album()
             if album:
-                artwork = album.get_cover_image()
-            time_remaining = current_track.get_duration()
+                info.album = album.get_title()
+                info.artwork_url = album.get_cover_image()
+            
+            info.duration = current_track.get_duration()
+            # Note: We could also check is_loved here if needed
         except pylast.WSError as e:
             logger.error(f'pylast.WSError: {e}')
         except pylast.NetworkError:
             logger.error(project.TRANSLATIONS['pylast_network_error'])
-        if artwork:
-            logger.debug(f"Fetched artwork URL: {artwork}")
+        
+        if info.artwork_url:
+            logger.debug(f"Fetched artwork URL: {info.artwork_url}")
         else:
             logger.debug("No artwork found for track.")
-        return title, artist, album, artwork, time_remaining
+        return info
 
     def now_playing(self):
         current_track = self._get_current_track()
@@ -73,4 +79,4 @@ class User:
             self.last_track = None
             self.last_track_info = None
             logger.debug(project.TRANSLATIONS['no_song'].format(self.cooldown))
-            return current_track, None
+            return None, None

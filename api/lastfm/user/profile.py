@@ -1,11 +1,10 @@
-import logging
 import os
-
+from typing import Optional
+from loguru import logger
+from api.lastfm.models import UserState
 from constants.project import DEFAULT_AVATAR_ID, LASTFM_USER_URL
 from utils.request_utils import get_response, get_dom
 from utils.string_utils import get_removal
-
-logger = logging.getLogger('profile')
 
 def parse_user_display_name(page_content):
     """
@@ -68,7 +67,7 @@ def parse_user_header_status(page_content):
         logger.error(f"Error parsing user header status: {e}")
     return header_status
 
-def get_user_data(username) -> dict:
+def get_user_data(username) -> UserState:
     """
     Retrieves the user data from their Last.fm profile page.
 
@@ -76,20 +75,26 @@ def get_user_data(username) -> dict:
         username (str): The Last.fm username.
 
     Returns:
-        dict: A dictionary containing the user's display name, avatar URL, and header status.
+        UserState: An object containing the user's display name, avatar URL, and header status.
     """
     USER_PROFILE_URL = LASTFM_USER_URL.format(username=username)
 
     response = get_response(USER_PROFILE_URL)
+    state = UserState(username=username)
+    
     if response.status_code in range(200, 299):
         dom = get_dom(response)
-        data = {
-            "display_name": parse_user_display_name(dom),
-            "avatar_url": parse_user_avatar_url(dom),
-            "header_status": parse_user_header_status(dom)
-        }
+        state.display_name = parse_user_display_name(dom)
+        state.avatar_url = parse_user_avatar_url(dom)
+        
+        headers = parse_user_header_status(dom)
+        if len(headers) >= 3:
+            state.total_scrobbles = headers[0]
+            state.total_artists = headers[1] 
+            state.total_loved_tracks = headers[2]
+            
         logger.debug(f"User data retrieved successfully for {username}")
-        return data
+        return state
     else:
         logger.error(f"Failed to retrieve user data for {username}, status code: {response.status_code}")
-        return {}
+        return state
