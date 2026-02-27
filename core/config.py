@@ -42,6 +42,10 @@ class RpcDisplayConfig(BaseModel):
     show_artist_scrobbles_large: bool = Field(default=True, alias="SHOW_ARTIST_SCROBBLES_LARGE")
     focus_artist: bool = Field(default=True, alias="FOCUS_ARTIST")
 
+    # Templates
+    details_template: str = Field(default="{title}", alias="DETAILS_TEMPLATE")
+    state_template: str = Field(default="{artist} - {album}", alias="STATE_TEMPLATE")
+
 
 class AppConfig(BaseModel):
     """Root configuration model representing config.yaml structure."""

@@ -101,6 +101,33 @@ class DiscordRPC:
         """
         self._disconnect()
 
+    def _format_template(self, template: str, info: TrackInfo, username: str, user_state: UserState) -> str:
+        """Helper to safely format templates with track and user data."""
+        placeholders = {
+            "artist": info.artist or "",
+            "title": info.title or "",
+            "album": info.album or messenger("rpc_no_album"),
+            "username": username,
+            "display_name": user_state.display_name or username,
+            "scrobbles": str(info.artist_scrobbles),
+            "track_scrobbles": str(info.track_scrobbles),
+            "total_scrobbles": str(user_state.total_scrobbles),
+        }
+
+        try:
+            # We use a custom format to ignore keys that are not in the template
+            # instead of raising a KeyError
+            import re
+
+            def replace(match):
+                key = match.group(1)
+                return placeholders.get(key, match.group(0))
+
+            return re.sub(r"\{(\w+)\}", replace, template)
+        except Exception as e:
+            logger.error(f"Error formatting template '{template}': {e}")
+            return template
+
     def _prepare_artwork_status(self, artwork, artist_count, library_data):
         """Handles artwork fallback and library scrobble counts."""
         large_image_lines = {}
@@ -187,15 +214,21 @@ class DiscordRPC:
         # Logic for Discord Display
         display_type = StatusDisplayType.STATE if config.rpc.focus_artist else StatusDisplayType.DETAILS
 
-        # Format state line
+        # Handle Templates for main text areas
+        details_text = self._format_template(config.rpc.details_template, info, username, user_state)
+        state_text = self._format_template(config.rpc.state_template, info, username, user_state)
+
+        # Ensure text is not too short (Discord requirement)
+        final_details = details_text if len(details_text) >= 2 else f"{details_text} "
+        final_state = state_text if len(state_text) >= 2 else f"{state_text} "
+
         has_duration = info.duration > 0
-        rpc_state = f"{info.artist} - {info.album}" if has_duration and info.album else info.artist
 
         update_assets = {
             "activity_type": ActivityType.LISTENING,
             "status_display_type": display_type,
-            "details": display_title,
-            "state": rpc_state,
+            "details": final_details,
+            "state": final_state,
             "buttons": rpc_buttons,
             "small_image": small_image_asset,
             "small_text": small_text,
