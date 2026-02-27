@@ -158,12 +158,12 @@ class App:
                 # Show tray notification first (ensure icon is seen)
                 self.tray.notify(f"Last.fm API Error: {e}", "Action Required")
                 
-                # Show popup to the user
+                # Ask the user if they want to open settings
                 from tkinter import messagebox
-                messagebox.showerror(
-                    messenger('err'), 
-                    f"Last.fm API Error: {e}\n\nPlease check your API Key and Secret in Settings."
-                )
+                prompt = f"Last.fm API Error: {e}\n\n{messenger('menu_settings')} sayfasına gitmek ister misiniz?"
+                if messagebox.askyesno(messenger('err'), prompt):
+                    # Call open_settings from the tray manager
+                    self.tray.open_settings(None, None)
                 
                 # Stop the loop and wait for event (like settings save) to restart or stay idle
                 logger.info("RPC loop is now idle. Waiting for configuration change...")
