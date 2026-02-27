@@ -1,8 +1,8 @@
 from constants.project import LASTFM_LIBRARY_URL
-from utils.html_utils import get_dom
-from utils.request_utils import get_response
-from utils.string_utils import get_removal
-from utils.url_utils import url_encoder
+from utils.dom import get_dom
+from utils.network import get_response
+from utils.strings import get_removal
+from utils.urls import url_encoder
 
 
 def get_library_data(username, artist_name, track_name) -> dict:

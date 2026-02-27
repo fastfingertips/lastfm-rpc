@@ -11,9 +11,9 @@ from api.lastfm.models import TrackInfo
 from api.lastfm.user.tracking import User
 from core.config import config
 from core.tray import TrayManager
+from utils.dialogs import ask_yes_no, show_info
 from utils.i18n import messenger
-from utils.ui_utils import ask_yes_no, show_info
-from utils.url_utils import open_url
+from utils.urls import open_url
 
 logger = logger.bind(name="app")
 
@@ -54,7 +54,7 @@ class App:
         # In loguru, we change the level by removing and re-adding handlers
         # but for simplicity in a desktop app, we can just use the bound logger's logic
         # or reconfiguration. Here we re-setup with the new level.
-        from utils.logging_config import setup_logging
+        from utils.logger import setup_logging
 
         setup_logging(level=new_level)
 
@@ -206,7 +206,7 @@ class App:
         """Check for updates manually in a non-blocking way."""
 
         def run_manual_check():
-            from utils.update_checker import check_for_updates
+            from utils.updater import check_for_updates
 
             is_avail, ver_name, url = check_for_updates()
 
@@ -231,7 +231,7 @@ class App:
 
         def run_check():
             try:
-                from utils.update_checker import check_for_updates
+                from utils.updater import check_for_updates
 
                 is_avail, ver_name, url = check_for_updates()
                 if is_avail:

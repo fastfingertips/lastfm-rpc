@@ -4,9 +4,9 @@ from tkinter import ttk
 
 # Ensure absolute paths if needed, but constants handle paths
 from constants.project import APP_NAME, TRANSLATIONS_DIR
+from utils.dialogs import show_warning
 from utils.i18n import messenger
-from utils.ui_utils import show_warning
-from utils.url_utils import open_url
+from utils.urls import open_url
 
 
 class ConfigGUI:

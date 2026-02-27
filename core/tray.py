@@ -7,10 +7,10 @@ from pystray import Icon, Menu, MenuItem
 
 import constants.project as project
 from core.config import config
+from utils.clock import format_time
+from utils.dialogs import ask_config_gui, show_error
 from utils.i18n import messenger
-from utils.time_utils import format_time
-from utils.ui_utils import ask_config_gui, show_error
-from utils.url_utils import open_url
+from utils.urls import open_url
 
 logger = logger.bind(name="app")
 

@@ -2,7 +2,7 @@ from loguru import logger
 from packaging import version
 
 import constants.project as project
-from utils.request_utils import get_json
+from utils.network import get_json
 
 
 def check_for_updates():

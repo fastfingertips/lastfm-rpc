@@ -65,7 +65,7 @@ def ask_yes_no(title: str, message: str, parent=None) -> bool:
 
 def ask_config_gui(current_vals, on_save_callback):
     """Centrally launches the Config GUI."""
-    from utils.gui import ConfigGUI
+    from core.gui import ConfigGUI
 
     gui = ConfigGUI(current_vals, on_save_callback)
 

@@ -4,9 +4,9 @@ from loguru import logger
 
 from api.lastfm.models import UserState
 from constants.project import DEFAULT_AVATAR_ID, LASTFM_USER_URL
-from utils.html_utils import get_dom
-from utils.request_utils import get_response
-from utils.string_utils import get_removal
+from utils.dom import get_dom
+from utils.network import get_response
+from utils.strings import get_removal
 
 
 def parse_user_display_name(page_content):

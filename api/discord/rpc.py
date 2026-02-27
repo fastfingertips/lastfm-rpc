@@ -16,9 +16,9 @@ from constants.project import (
     NIGHT_MODE_COVER,
     YT_MUSIC_SEARCH_TEMPLATE,
 )
+from utils.clock import is_night_hours, now, now_timestamp
 from utils.i18n import messenger
-from utils.time_utils import is_night_hours, now, now_timestamp
-from utils.url_utils import url_encoder
+from utils.urls import url_encoder
 
 logger = logger.bind(name="rpc")
 

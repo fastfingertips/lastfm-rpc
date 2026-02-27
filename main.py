@@ -1,5 +1,5 @@
 from core.config import config
-from utils.logging_config import setup_logging
+from utils.logger import setup_logging
 
 # Configure enhanced logging as early as possible
 setup_logging(level="INFO")
@@ -13,7 +13,7 @@ def check_config():
         logger.warning("Configuration incomplete or placeholder detected. Opening settings...")
         import sys
 
-        from utils.ui_utils import ask_config_gui
+        from utils.dialogs import ask_config_gui
 
         def save_and_exit(new_config):
             # Extract values from new_config dict
