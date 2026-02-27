@@ -54,7 +54,8 @@ class User:
                 info.album = album.get_title()
                 info.artwork_url = album.get_cover_image()
 
-            info.duration = current_track.get_duration()
+            # pylast returns duration in milliseconds, convert to seconds
+            info.duration = current_track.get_duration() // 1000
             # Note: We could also check is_loved here if needed
         except pylast.WSError as e:
             logger.error(f"pylast.WSError: {e}")
