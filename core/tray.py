@@ -7,7 +7,7 @@ from pystray import Icon, Menu, MenuItem
 
 import constants.project as project
 from core.config import config
-from utils.string_utils import messenger
+from utils.i18n import messenger
 from utils.time_utils import format_time
 from utils.ui_utils import ask_config_gui, show_error
 from utils.url_utils import open_url

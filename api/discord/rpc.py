@@ -16,7 +16,7 @@ from constants.project import (
     NIGHT_MODE_COVER,
     YT_MUSIC_SEARCH_TEMPLATE,
 )
-from utils.string_utils import messenger
+from utils.i18n import messenger
 from utils.time_utils import is_night_hours, now, now_timestamp
 from utils.url_utils import url_encoder
 

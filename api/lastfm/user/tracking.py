@@ -4,7 +4,7 @@ from loguru import logger
 from api.lastfm.models import TrackInfo
 from core.config import config
 from core.exceptions import APIKeyError
-from utils.string_utils import messenger
+from utils.i18n import messenger
 from utils.time_utils import ms_to_seconds
 
 logger = logger.bind(name="lastfm")

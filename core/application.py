@@ -11,7 +11,7 @@ from api.lastfm.models import TrackInfo
 from api.lastfm.user.tracking import User
 from core.config import config
 from core.tray import TrayManager
-from utils.string_utils import messenger
+from utils.i18n import messenger
 from utils.ui_utils import ask_yes_no, show_info
 from utils.url_utils import open_url
 
