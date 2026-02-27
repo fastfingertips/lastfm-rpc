@@ -4,6 +4,8 @@ import yaml
 from loguru import logger
 from pydantic import BaseModel, Field
 
+from utils.paths import get_project_root
+
 logger = logger.bind(name="config")
 
 
@@ -65,9 +67,10 @@ class ConfigManager:
     providing access to settings and translations.
     """
 
-    def __init__(self, config_path: str = "config.yaml", translations_dir: str = "translations"):
-        self.config_path = config_path
-        self.translations_dir = translations_dir
+    def __init__(self, config_path: str | None = None, translations_dir: str | None = None):
+        root = get_project_root()
+        self.config_path = config_path or os.path.join(root, "config.yaml")
+        self.translations_dir = translations_dir or os.path.join(root, "translations")
         self._config = AppConfig()
         self.translations: dict[str, str] = {}
 
@@ -160,5 +163,5 @@ class ConfigManager:
 
 
 # ── Global Config Instance ───────────────────────────────
-config = ConfigManager(translations_dir="translations")
+config = ConfigManager()
 config.load()

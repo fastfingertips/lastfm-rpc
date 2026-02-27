@@ -5,6 +5,8 @@ import sys
 
 from loguru import logger
 
+from utils.paths import get_log_dir
+
 
 class InterceptHandler(logging.Handler):
     """
@@ -65,9 +67,7 @@ def setup_logging(level="INFO"):
     logger.add(sys.stdout, level=level, format=console_format, colorize=True, backtrace=True, diagnose=True)
 
     # 2. File Handler (with Rotation and Compression)
-    log_dir = "logs"
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    log_dir = get_log_dir()
 
     file_format = "[{time:YYYY-MM-DD HH:mm:ss}] {level: <8} [{extra[name]}] [{file}:{line}] {function}() - {message}"
 

@@ -6,11 +6,6 @@ Runtime configuration (username, API keys, translations) is accessed
 via `core.config.config`.
 """
 
-# ── Paths ─────────────────────────────────────────────────
-TRANSLATIONS_DIR = "translations"
-ASSETS_DIR = "assets"
-APP_ICON_PATH = "assets/last_fm.png"
-
 # ── Project Info ──────────────────────────────────────────
 VERSION = "0.0.4"
 GITHUB_ORG = "fastfingertips"

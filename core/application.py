@@ -7,8 +7,10 @@ from loguru import logger
 
 import constants.project as project
 from api.discord.rpc import DiscordRPC
-from api.lastfm.models import TrackInfo
+from api.lastfm.models import TrackInfo, UserState
 from api.lastfm.user.tracking import User
+from api.lastfm.user.library import get_library_data
+from api.lastfm.user.profile import get_user_data
 from core.config import config
 from core.tray import TrayManager
 from utils.dialogs import ask_yes_no, show_info
@@ -30,6 +32,9 @@ class App:
         self.config_needs_reload = False
         self.latest_update = (False, None, None)
         self.cached_track_data = None
+        self.cached_user_data = None
+        self.cached_library_data = None
+        self.last_fetched_track = None
         self.update_event = threading.Event()
 
         # Initialize UI Manager
@@ -93,7 +98,52 @@ class App:
         logger.info(f"Set large image mode to {'Scrobbles' if show_scrobbles else 'Album Name'}. Triggering update.")
         self.update_event.set()
 
-    def _handle_active_track(self, current_track, info: TrackInfo, is_forced_update=False):
+    def _perform_rpc_cycle(self, user, is_forced_update):
+        """
+        Executes a single cycle of the RPC update process.
+        Returns the wait time for the next cycle.
+        """
+        # If forced update and we have cached data, reuse it without polling Last.fm
+        if is_forced_update and self.cached_track_data:
+            current_track, data = self.cached_track_data
+        else:
+            # Normal poll cycle
+            current_track, data = user.now_playing()
+            if data:
+                self.cached_track_data = (current_track, data)
+
+        if data:
+            # Fetch additional metadata (User stats, library scrobbles)
+            user_state, lib_data = self._get_metadata_with_cache(current_track, data.artist, data.title)
+            if user_state and lib_data:
+                self._handle_active_track(current_track, data, user_state, lib_data, is_forced_update)
+            return project.TRACK_CHECK_INTERVAL
+
+        self._handle_no_track()
+        self.cached_track_data = None
+        return project.UPDATE_INTERVAL
+
+    def _get_metadata_with_cache(self, track_obj, artist, title) -> tuple[UserState | None, dict | None]:
+        """Fetch user and library data with caching logic."""
+        if self.last_fetched_track == track_obj and self.cached_user_data and self.cached_library_data:
+            logger.debug(f"Using cached Last.fm stats for {track_obj}")
+            return self.cached_user_data, self.cached_library_data
+
+        user_state = get_user_data(config.username)
+        if not user_state:
+            logger.error(f"User data not found for {config.username}")
+            return None, None
+
+        library_data = get_library_data(config.username, artist, title)
+
+        # Update cache
+        self.last_fetched_track = track_obj
+        self.cached_user_data = user_state
+        self.cached_library_data = library_data
+
+        return user_state, library_data
+
+    def _handle_active_track(self, current_track, info: TrackInfo, user_state: UserState, lib_data: dict, is_forced_update=False):
         """Handle the case where a track is playing."""
         formatted_track = f"{info.artist} - {info.title}"
         new_track_display = messenger("now_playing", formatted_track)
@@ -113,7 +163,9 @@ class App:
             logger.debug(f"Polling: {formatted_track}")
 
         # 2. HEAVY DATA UPDATE
-        self.rpc.update_status(current_track, info, config.username, force=is_forced_update)
+        self.rpc.update_status(
+            current_track, info, config.username, user_state, lib_data, force=is_forced_update
+        )
 
         # 3. Refresh menu if changed
         if has_track_changed or has_conn_changed:
@@ -181,26 +233,6 @@ class App:
                 # Small cooldown after failure
                 self.update_event.wait(5)
 
-    def _perform_rpc_cycle(self, user, is_forced_update):
-        """
-        Executes a single cycle of the RPC update process.
-        Returns the wait time for the next cycle.
-        """
-        # If forced update and we have cached data, reuse it without polling Last.fm
-        if is_forced_update and self.cached_track_data:
-            current_track, data = self.cached_track_data
-        else:
-            # Normal poll cycle
-            current_track, data = user.now_playing()
-            if data:
-                self.cached_track_data = (current_track, data)
-
-        if data:
-            self._handle_active_track(current_track, data, is_forced_update)
-            return project.TRACK_CHECK_INTERVAL
-        self._handle_no_track()
-        self.cached_track_data = None
-        return project.UPDATE_INTERVAL
 
     def check_updates_manual(self, icon, item):
         """Check for updates manually in a non-blocking way."""

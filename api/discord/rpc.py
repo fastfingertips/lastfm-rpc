@@ -5,8 +5,6 @@ from pypresence.types import ActivityType, StatusDisplayType
 
 from api.discord.formatter import format_rpc_text
 from api.lastfm.models import TrackInfo, UserState
-from api.lastfm.user.library import get_library_data
-from api.lastfm.user.profile import get_user_data
 from constants.project import (
     CLIENT_ID,
     DAY_MODE_COVER,
@@ -55,10 +53,8 @@ class DiscordRPC:
         self.show_artist_scrobbles_large = True
         self.focus_artist = True
 
-        # Cache for forced updates
-        self.last_fetched_track = None
-        self.cached_user_data = None
-        self.cached_library_data = None
+        self.show_artist_scrobbles_large = True
+        self.focus_artist = True
 
     @property
     def is_connected(self):
@@ -166,7 +162,15 @@ class DiscordRPC:
             {"label": "YouTube Music", "url": str(YT_MUSIC_SEARCH_TEMPLATE.format(query=url_encoder(album)))},
         ]
 
-    def update_status(self, track_obj, info: TrackInfo, username: str, force=False):
+    def update_status(
+        self,
+        track_obj,
+        info: TrackInfo,
+        username: str,
+        user_state: UserState,
+        lib_data: dict,
+        force=False,
+    ):
         """Main entry point to update Discord Rich Presence with new track info."""
         if not info or not info.title:
             return
@@ -175,11 +179,6 @@ class DiscordRPC:
         display_title = info.title if len(info.title) >= 2 else f"{info.title} "
 
         if self.last_track == track_obj and self.current_artist is not None and not force:
-            return
-
-        # Fetch additional metadata (User stats, library scrobbles)
-        user_state, lib_data = self._get_metadata_with_cache(track_obj, username, info.artist, info.title)
-        if not user_state or not lib_data:
             return
 
         # Map library stats to our info object
@@ -222,25 +221,6 @@ class DiscordRPC:
 
         self._send_rpc_update(update_assets)
 
-    def _get_metadata_with_cache(self, track_obj, username, artist, title) -> tuple[UserState | None, dict | None]:
-        """Fetch user and library data with caching logic."""
-        if self.last_fetched_track == track_obj and self.cached_user_data and self.cached_library_data:
-            logger.debug(f"Using cached Last.fm stats for {track_obj}")
-            return self.cached_user_data, self.cached_library_data
-
-        user_state = get_user_data(username)
-        if not user_state:
-            logger.error(f"User data not found for {username}")
-            return None, None
-
-        library_data = get_library_data(username, artist, title)
-
-        # Update cache
-        self.last_fetched_track = track_obj
-        self.cached_user_data = user_state
-        self.cached_library_data = library_data
-
-        return user_state, library_data
 
     def _prepare_small_image_details(self, user_state: UserState):
         """Prepares the small image (avatar/badge) and its hover text."""

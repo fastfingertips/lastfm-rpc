@@ -11,6 +11,7 @@ from utils.clock import format_time
 from utils.dialogs import ask_config_gui, show_error
 from utils.i18n import messenger
 from utils.urls import open_url
+from utils.paths import get_project_root, get_asset_path
 
 logger = logger.bind(name="app")
 
@@ -21,28 +22,18 @@ class TrayManager:
         self.icon = self.setup_tray_icon()
         self._settings_open = False
 
-    def get_directory(self):
-        """Returns the project root directory."""
-        if getattr(sys, "frozen", False):
-            # If running as an executable
-            return os.path.dirname(sys.executable)
-
-        # When running as a script, get the parent of 'core' directory
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.dirname(current_dir)
-
-    def load_icon(self, directory):
+    def load_icon(self):
         """Loads the application icon from the assets directory."""
+        icon_path = get_asset_path("last_fm.png")
         try:
-            return Image.open(os.path.join(directory, project.APP_ICON_PATH))
+            return Image.open(icon_path)
         except FileNotFoundError:
             show_error(messenger("err"), messenger("err_assets"))
             sys.exit(1)
 
     def setup_tray_icon(self):
         """Sets up the initial system tray icon."""
-        directory = self.get_directory()
-        icon_img = self.load_icon(directory)
+        icon_img = self.load_icon()
 
         return Icon(project.APP_NAME, icon=icon_img, title=project.APP_NAME, menu=self.setup_tray_menu())
 
