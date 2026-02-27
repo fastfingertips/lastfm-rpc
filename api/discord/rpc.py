@@ -1,5 +1,3 @@
-import datetime
-
 from loguru import logger
 from pypresence import exceptions
 from pypresence.presence import Presence
@@ -19,6 +17,7 @@ from constants.project import (
     YT_MUSIC_SEARCH_TEMPLATE,
 )
 from utils.string_utils import messenger
+from utils.time_utils import is_night_hours, now, now_timestamp
 from utils.url_utils import url_encoder
 
 logger = logger.bind(name="rpc")
@@ -76,7 +75,7 @@ class DiscordRPC:
                     self.RPC = Presence(CLIENT_ID)
 
                 self.RPC.connect()
-                self.connection_time = datetime.datetime.now()
+                self.connection_time = now()
                 logger.info("Connected with Discord")
                 self._enabled = True
                 self._disabled = False
@@ -127,11 +126,9 @@ class DiscordRPC:
         # artwork
         if artwork is None:
             # if there is no artwork, use the default one
-            now = datetime.datetime.now()
-            # day: false, night: true
-            is_day = now.hour >= 18 or now.hour < 9
-            artwork = DAY_MODE_COVER if is_day else NIGHT_MODE_COVER
-            large_image_lines["theme"] = messenger("rpc_night_mode") if is_day else messenger("rpc_day_mode")
+            is_night = is_night_hours()
+            artwork = DAY_MODE_COVER if is_night else NIGHT_MODE_COVER
+            large_image_lines["theme"] = messenger("rpc_night_mode") if is_night else messenger("rpc_day_mode")
 
         if artist_count:
             # if the artist is in the library
@@ -191,7 +188,7 @@ class DiscordRPC:
 
         # Update session start time if track changed
         if self.last_track != track_obj:
-            self.start_time = datetime.datetime.now().timestamp()
+            self.start_time = now_timestamp()
 
         self.last_track = track_obj
         self.current_artist = info.artist

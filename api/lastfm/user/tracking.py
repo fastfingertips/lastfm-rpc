@@ -3,6 +3,7 @@ from loguru import logger
 
 import constants.project as project
 from api.lastfm.models import TrackInfo
+from utils.time_utils import ms_to_seconds
 
 logger = logger.bind(name="lastfm")
 
@@ -55,7 +56,7 @@ class User:
                 info.artwork_url = album.get_cover_image()
 
             # pylast returns duration in milliseconds, convert to seconds
-            info.duration = current_track.get_duration() // 1000
+            info.duration = ms_to_seconds(current_track.get_duration())
             # Note: We could also check is_loved here if needed
         except pylast.WSError as e:
             logger.error(f"pylast.WSError: {e}")

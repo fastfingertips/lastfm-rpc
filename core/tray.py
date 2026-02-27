@@ -7,6 +7,7 @@ from pystray import Icon, Menu, MenuItem
 
 import constants.project as project
 from utils.string_utils import messenger
+from utils.time_utils import format_time
 from utils.ui_utils import ask_config_gui, show_error
 from utils.url_utils import open_url
 
@@ -144,7 +145,7 @@ class TrayManager:
         """Returns the current Discord status text for the menu."""
         is_connected = self.app.rpc.is_connected
         if is_connected and self.app.rpc.connection_time:
-            time_str = self.app.rpc.connection_time.strftime("%H:%M")
+            time_str = format_time(self.app.rpc.connection_time)
             status_detail = messenger("connected_with_time", time_str)
         else:
             status_detail = messenger("connected") if is_connected else messenger("disconnected")
