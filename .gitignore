@@ -222,5 +222,6 @@ __marimo__/
 dist/
 nuitka-crash-report.xml
 logs/
-config.yaml
+config.yaml.backup
+config.yaml.example
                                
