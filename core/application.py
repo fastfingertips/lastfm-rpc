@@ -6,6 +6,7 @@ import os
 
 import constants.project as project
 from utils.string_utils import messenger
+from utils.url_utils import open_url
 from api.lastfm.models import TrackInfo
 from api.lastfm.user.tracking import User
 from api.discord.rpc import DiscordRPC
@@ -205,7 +206,6 @@ class App:
             from utils.update_checker import check_for_updates
             import tkinter as tk
             from tkinter import messagebox
-            import webbrowser
             
             # Create a hidden root for the messagebox to ensure it has an owner
             # and doesn't interfere with the main thread's message loop if any
@@ -223,7 +223,7 @@ class App:
                     messenger('update_available', ver_name) + "\n\nDo you want to visit the download page?",
                     parent=root
                 ):
-                    if url: webbrowser.open(url)
+                    if url: open_url(url)
             else:
                 messagebox.showinfo(
                     messenger('menu_check_updates'), 

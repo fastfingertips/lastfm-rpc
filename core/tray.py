@@ -1,5 +1,4 @@
 from loguru import logger
-import webbrowser
 import sys
 import os
 from tkinter import messagebox
@@ -8,6 +7,7 @@ from PIL import Image
 
 import constants.project as project
 from utils.string_utils import messenger
+from utils.url_utils import open_url
 
 logger = logger.bind(name='app')
 
@@ -56,7 +56,7 @@ class TrayManager:
         if is_available:
             dynamic_items.append(MenuItem(
                 messenger('update_available', ver_name), 
-                lambda icon, item: webbrowser.open(url) if url else None
+                lambda icon, item: open_url(url)
             ))
             dynamic_items.append(Menu.SEPARATOR)
 
@@ -124,7 +124,7 @@ class TrayManager:
     def open_profile(self, icon, item):
         """Opens the user's Last.fm profile in the default browser."""
         url = project.LASTFM_USER_URL.format(username=project.USERNAME)
-        webbrowser.open(url)
+        open_url(url)
         logger.info(f"Opened Last.fm profile: {url}")
 
     def open_settings(self, icon, item):

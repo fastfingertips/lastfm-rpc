@@ -6,6 +6,7 @@ import logging
 # Ensure absolute paths if needed, but constants handle paths
 from constants.project import TRANSLATIONS_DIR, APP_NAME
 from utils.string_utils import messenger
+from utils.url_utils import open_url
 
 logger = logging.getLogger('gui')
 
@@ -60,9 +61,8 @@ class ConfigGUI:
                  fg="blue", cursor="hand2", font=("Segoe UI", 8))
         view_apis_label.pack(pady=(5, 0))
         
-        import webbrowser
-        help_label.bind("<Button-1>", lambda e: webbrowser.open("https://www.last.fm/api/account/create"))
-        view_apis_label.bind("<Button-1>", lambda e: webbrowser.open("https://www.last.fm/api/accounts"))
+        help_label.bind("<Button-1>", lambda e: open_url("https://www.last.fm/api/account/create"))
+        view_apis_label.bind("<Button-1>", lambda e: open_url("https://www.last.fm/api/accounts"))
 
     def create_input(self, parent, label_text, current_val, is_secret=False):
         tk.Label(parent, text=label_text).pack(anchor="w", pady=(5, 0))
