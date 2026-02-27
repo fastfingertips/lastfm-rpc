@@ -133,7 +133,7 @@ class App:
         logger.info(messenger("starting_rpc"))
         asyncio.set_event_loop(loop)
 
-        from api.lastfm.user.tracking import APIKeyError
+        from core.exceptions import APIKeyError
 
         user = User(project.USERNAME)
 

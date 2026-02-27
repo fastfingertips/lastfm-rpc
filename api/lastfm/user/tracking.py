@@ -3,15 +3,10 @@ from loguru import logger
 
 import constants.project as project
 from api.lastfm.models import TrackInfo
+from core.exceptions import APIKeyError
 from utils.time_utils import ms_to_seconds
 
 logger = logger.bind(name="lastfm")
-
-
-class APIKeyError(Exception):
-    """Exception raised for fatal Last.fm API key issues."""
-
-    pass
 
 
 class User:
