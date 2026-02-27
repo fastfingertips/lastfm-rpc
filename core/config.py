@@ -115,6 +115,14 @@ class ConfigManager:
     def rpc(self) -> RpcDisplayConfig:
         return self._config.rpc
 
+    @property
+    def details_template(self) -> str:
+        return self._config.rpc.details_template
+
+    @property
+    def state_template(self) -> str:
+        return self._config.rpc.state_template
+
     def load(self):
         """Loads configuration from YAML file and initializes translations."""
         try:
@@ -134,7 +142,7 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Failed to load configuration: {e}")
 
-    def save(self, username: str = None, api_key: str = None, api_secret: str = None, lang: str = None) -> bool:
+    def save(self, username: str = None, api_key: str = None, api_secret: str = None, lang: str = None, rpc_config: dict = None) -> bool:
         """Saves current configuration to the YAML file."""
         if username is not None:
             self._config.user.username = username
@@ -144,6 +152,12 @@ class ConfigManager:
             self._config.api.secret = api_secret
         if lang is not None:
             self._config.app.lang = lang
+        
+        if rpc_config:
+            # Update RPC config from dict
+            for key, value in rpc_config.items():
+                if hasattr(self._config.rpc, key):
+                    setattr(self._config.rpc, key, value)
 
         try:
             # Use Pydantic's model_dump with by_alias=True to get the YAML-friendly structure
@@ -161,9 +175,9 @@ class ConfigManager:
             logger.error(f"Error saving configuration: {e}")
             return False
 
-    def get_all_config(self) -> tuple[str, str, str, str]:
-        """Returns the primary configuration values as a tuple."""
-        return self.username, self.api_key, self.api_secret, self.app_lang
+    def get_all_config(self) -> AppConfig:
+        """Returns the full configuration object."""
+        return self._config
 
     def is_complete(self) -> bool:
         """Delegates completeness check to the Pydantic model."""
