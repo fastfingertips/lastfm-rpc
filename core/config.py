@@ -1,85 +1,133 @@
 from loguru import logger
 import os
 import yaml
-from typing import Dict, Any, Tuple
-from utils.reader import load_yaml_file, load_translations
+from typing import Dict, Optional, Tuple
+
+from pydantic import BaseModel, Field, field_validator
 
 logger = logger.bind(name='config')
 
-from dataclasses import dataclass, asdict
 
-@dataclass
-class AppConfig:
-    """Dataclass to hold application configuration with type safety."""
-    username: str = ""
-    api_key: str = ""
-    api_secret: str = ""
-    app_lang: str = "en-US"
+class UserConfig(BaseModel):
+    """User-specific settings."""
+    username: str = Field(default="", alias="USERNAME")
+
+
+class ApiConfig(BaseModel):
+    """API credentials."""
+    key: str = Field(default="", alias="KEY")
+    secret: str = Field(default="", alias="SECRET")
+
+
+class AppSettingsConfig(BaseModel):
+    """Application-level settings."""
+    lang: str = Field(default="en-US", alias="LANG")
+
+
+class AppConfig(BaseModel):
+    """Root configuration model representing config.yaml structure."""
+    user: UserConfig = Field(default_factory=UserConfig, alias="USER")
+    api: ApiConfig = Field(default_factory=ApiConfig, alias="API")
+    app: AppSettingsConfig = Field(default_factory=AppSettingsConfig, alias="APP")
+
+    model_config = {"populate_by_name": True}
+
+    # Shortcut properties for backward compatibility
+    @property
+    def username(self) -> str:
+        return self.user.username
+
+    @property
+    def api_key(self) -> str:
+        return self.api.key
+
+    @property
+    def api_secret(self) -> str:
+        return self.api.secret
+
+    @property
+    def app_lang(self) -> str:
+        return self.app.lang
+
+    def is_complete(self) -> bool:
+        """Checks if the configuration has all required values and no placeholders."""
+        if not all([self.username, self.api_key, self.api_secret]):
+            return False
+        if "<" in self.username or "<" in self.api_key:
+            return False
+        return True
+
 
 class ConfigManager:
     """
     Manages application configuration, including loading, saving, and 
     providing access to settings and translations.
     """
-    
+
     def __init__(self, config_path: str = "config.yaml", translations_dir: str = "translations"):
         self.config_path = config_path
         self.translations_dir = translations_dir
-        
-        # Internal state using a dataclass
-        self._data = AppConfig()
+        self._config = AppConfig()
         self.translations: Dict[str, str] = {}
 
+    # Shortcut properties delegating to AppConfig
     @property
-    def username(self) -> str: return self._data.username
+    def username(self) -> str:
+        return self._config.username
+
     @property
-    def api_key(self) -> str: return self._data.api_key
+    def api_key(self) -> str:
+        return self._config.api_key
+
     @property
-    def api_secret(self) -> str: return self._data.api_secret
+    def api_secret(self) -> str:
+        return self._config.api_secret
+
     @property
-    def app_lang(self) -> str: return self._data.app_lang
+    def app_lang(self) -> str:
+        return self._config.app_lang
 
     def load(self):
-        """Loads configuration from file and initializes translations."""
+        """Loads configuration from YAML file and initializes translations."""
         try:
-            config_dict = load_yaml_file(self.config_path)
-            
-            # Populate dataclass
-            self._data = AppConfig(
-                username=config_dict.get('USER', {}).get('USERNAME', ""),
-                api_key=config_dict.get('API', {}).get('KEY', ""),
-                api_secret=config_dict.get('API', {}).get('SECRET', ""),
-                app_lang=config_dict.get('APP', {}).get('LANG', 'en-US')
-            )
-            
+            with open(self.config_path, 'r', encoding='utf-8') as f:
+                raw = yaml.safe_load(f) or {}
+
+            # Pydantic handles validation and defaults automatically
+            self._config = AppConfig.model_validate(raw)
+
             # Load translations based on language
-            self.translations = load_translations(self.app_lang, self.translations_dir)
-            
+            self.translations = self._load_translations(self.app_lang)
+
             logger.info(f"Configuration and translations ({self.app_lang}) loaded successfully.")
+        except FileNotFoundError:
+            logger.warning(f"Config file not found at {self.config_path}, using defaults.")
+            self._config = AppConfig()
         except Exception as e:
             logger.error(f"Failed to load configuration: {e}")
-            
+
     def save(self, username: str, api_key: str, api_secret: str, lang: str) -> bool:
-        """
-        Saves new configuration values to the YAML file.
-        Returns True if successful, False otherwise.
-        """
-        # Update local dataclass first
-        self._data = AppConfig(username, api_key, api_secret, lang)
-        
-        new_config = {
+        """Saves new configuration values to the YAML file."""
+        self._config = AppConfig(
+            user=UserConfig(USERNAME=username),
+            api=ApiConfig(KEY=api_key, SECRET=api_secret),
+            app=AppSettingsConfig(LANG=lang)
+        )
+
+        # Convert to YAML-friendly dict using aliases
+        config_dict = {
             'USER': {'USERNAME': self.username},
             'API': {'KEY': self.api_key, 'SECRET': self.api_secret},
             'APP': {'LANG': self.app_lang}
         }
-        
+
         try:
             with open(self.config_path, "w", encoding="utf-8") as f:
-                yaml.dump(new_config, f, default_flow_style=False, allow_unicode=True)
-            
+                yaml.dump(config_dict, f, default_flow_style=False, allow_unicode=True)
+
             # Reload translations in case language changed
-            self.translations = load_translations(self.app_lang, self.translations_dir)
-            
+            self.translations = self._load_translations(self.app_lang)
+
             logger.info("Configuration saved and reloaded successfully.")
             return True
         except Exception as e:
@@ -91,12 +139,20 @@ class ConfigManager:
         return self.username, self.api_key, self.api_secret, self.app_lang
 
     def is_complete(self) -> bool:
-        """Checks if the configuration is complete and not containing placeholders."""
-        if not all([self.username, self.api_key, self.api_secret]):
-            return False
-        
-        # Check for placeholders like <YOUR_KEY>
-        if "<" in str(self.username) or "<" in str(self.api_key):
-            return False
-            
-        return True
+        """Delegates completeness check to the Pydantic model."""
+        return self._config.is_complete()
+
+    def _load_translations(self, lang: str) -> Dict[str, str]:
+        """Load translations from a YAML file based on language code."""
+        file_path = os.path.join(self.translations_dir, f"{lang}.yaml")
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                translations = yaml.safe_load(f) or {}
+            logger.info(f"Translations for '{lang}' loaded successfully from {file_path}")
+            return translations
+        except FileNotFoundError:
+            logger.error(f"Translation file not found: {file_path}")
+            return {}
+        except Exception as e:
+            logger.error(f"Could not load translations for language: {lang} - {e}")
+            return {}

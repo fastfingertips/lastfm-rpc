@@ -1,65 +1,34 @@
-import logging
 import sys
 import os
-from typing import Tuple, Dict
+from typing import Dict
 
 import yaml
+from loguru import logger
 
 def load_yaml_file(file_path: str) -> dict:
     """
     Load a YAML file and return its contents as a dictionary.
-    
-    :param file_path: Path to the YAML file.
-    :return: Contents of the YAML file as a dictionary.
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
-            return yaml.safe_load(file)
+            return yaml.safe_load(file) or {}
     except yaml.YAMLError:
-        logging.error(f"Error loading YAML file: {file_path}")
+        logger.error(f"Error loading YAML file: {file_path}")
         sys.exit(1)
     except FileNotFoundError:
-        logging.error(f"File not found: {file_path}")
+        logger.error(f"File not found: {file_path}")
         sys.exit(1)
-
-def load_config(config_path: str = "config.yaml") -> Tuple[str, str, str, str]:
-    """
-    Load the configuration file and return the required values.
-    
-    :param config_path: Path to the configuration YAML file.
-    :return: A tuple containing username, API key, API secret, and app language.
-    """
-    config = load_yaml_file(config_path)
-    try:
-        username = config.get('USER', {}).get('USERNAME')
-        api_key = config.get('API', {}).get('KEY')
-        api_secret = config.get('API', {}).get('SECRET')
-        app_lang = config.get('APP', {}).get('LANG', 'en-US')
-
-        if not all([username, api_key, api_secret]) or "<" in str(username) or "<" in str(api_key):
-            logging.warning("Configuration incomplete or contains placeholders. GUI might be required.")
-            return username, api_key, api_secret, app_lang
-            
-        logging.info("Configuration loaded successfully.")
-        return username, api_key, api_secret, app_lang
-    except Exception as e:
-        logging.error(f"Error validating configuration: {e}")
-        return "", "", "", 'en-US'
 
 def load_translations(app_lang: str, translations_dir: str) -> Dict[str, str]:
     """
     Load the translations from a specific file based on the language code.
-    
-    :param app_lang: Language code for the translations (e.g., 'en-US', 'tr-TR').
-    :param translations_dir: Path to the translations directory.
-    :return: A dictionary containing translations.
     """
     file_path = os.path.join(translations_dir, f"{app_lang}.yaml")
     
     try:
         translations = load_yaml_file(file_path)
-        logging.info(f"Translations for '{app_lang}' loaded successfully from {file_path}")
+        logger.info(f"Translations for '{app_lang}' loaded successfully from {file_path}")
         return translations
     except Exception:
-        logging.error(f"Could not load translations for language: {app_lang}")
+        logger.error(f"Could not load translations for language: {app_lang}")
         sys.exit(1)
