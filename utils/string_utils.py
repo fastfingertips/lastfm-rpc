@@ -1,7 +1,9 @@
 from loguru import logger
+
 import constants.project as project
 
-logger = logger.bind(name='utils')
+logger = logger.bind(name="utils")
+
 
 def messenger(key, *args):
     """
@@ -11,7 +13,7 @@ def messenger(key, *args):
     try:
         if not args:
             return project.TRANSLATIONS[key]
-        
+
         # Unpack if passed as a single collection
         actual_args = args[0] if len(args) == 1 and isinstance(args[0], (list, tuple)) else args
         return project.TRANSLATIONS[key].format(*(str(arg) for arg in actual_args))
@@ -19,11 +21,11 @@ def messenger(key, *args):
         logger.error(f'Translation error for key "{key}": {e}')
         return f"[{key}]"
     except Exception as e:
-        logger.error(f'Unexpected error in messenger: {e}')
+        logger.error(f"Unexpected error in messenger: {e}")
         return f"[{key}]"
 
 
-def get_removal(inside_obj, find_obj=' ', return_type=None):
+def get_removal(inside_obj, find_obj=" ", return_type=None):
     """
     Removes occurrences of `find_obj` from `inside_obj` and converts the result to the specified type if needed.
 
@@ -53,7 +55,7 @@ def get_removal(inside_obj, find_obj=' ', return_type=None):
 
     # Remove occurrences of find_obj from inside_obj
     if find_obj in inside_obj:
-        inside_obj = inside_obj.replace(find_obj, '')
+        inside_obj = inside_obj.replace(find_obj, "")
 
     # Convert inside_obj to the specified type if needed
     if not isinstance(inside_obj, return_type):

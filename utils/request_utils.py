@@ -1,12 +1,15 @@
 import time
-from typing import Optional
+
 import requests
 from bs4 import BeautifulSoup
 from loguru import logger
 
-from constants.project import RETRY_INTERVAL, MAX_RETRIES
+from constants.project import MAX_RETRIES, RETRY_INTERVAL
 
-def get_response(url: str, retry_interval: int = RETRY_INTERVAL, max_retries: int = MAX_RETRIES, timeout: int = 10) -> Optional[requests.Response]:
+
+def get_response(
+    url: str, retry_interval: int = RETRY_INTERVAL, max_retries: int = MAX_RETRIES, timeout: int = 10
+) -> requests.Response | None:
     """
     Connects to the specified URL and retries until a successful response is received or the max retries limit is reached.
     """
@@ -23,10 +26,11 @@ def get_response(url: str, retry_interval: int = RETRY_INTERVAL, max_retries: in
                 break
             logger.warning(f"Request failed ({e}), retrying {retries}/{max_retries} in {retry_interval}s...")
             time.sleep(retry_interval)
-    
+
     return None
 
-def get_json(url: str, **kwargs) -> Optional[dict]:
+
+def get_json(url: str, **kwargs) -> dict | None:
     """
     Helper to fetch JSON data from a URL using get_response.
     """
@@ -38,14 +42,15 @@ def get_json(url: str, **kwargs) -> Optional[dict]:
             logger.error(f"Failed to parse JSON from {url}: {e}")
     return None
 
+
 def get_dom(response: requests.Response) -> BeautifulSoup:
     """
     Parses the response content into a BeautifulSoup object.
-    
+
     Args:
         response (requests.Response): The response object.
-    
+
     Returns:
         BeautifulSoup: The parsed HTML content.
     """
-    return BeautifulSoup(response.content, 'html.parser')
+    return BeautifulSoup(response.content, "html.parser")

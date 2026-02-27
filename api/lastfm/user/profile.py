@@ -1,10 +1,12 @@
 import os
-from typing import Optional
+
 from loguru import logger
+
 from api.lastfm.models import UserState
 from constants.project import DEFAULT_AVATAR_ID, LASTFM_USER_URL
-from utils.request_utils import get_response, get_dom
+from utils.request_utils import get_dom, get_response
 from utils.string_utils import get_removal
+
 
 def parse_user_display_name(page_content):
     """
@@ -22,6 +24,7 @@ def parse_user_display_name(page_content):
     except Exception as e:
         logger.error(f"Error parsing user display name: {e}")
         return None
+
 
 def parse_user_avatar_url(page_content):
     """
@@ -46,6 +49,7 @@ def parse_user_avatar_url(page_content):
         logger.error(f"Error parsing user avatar URL: {e}")
         return None
 
+
 def parse_user_header_status(page_content):
     """
     Parses the user's header status from the page content.
@@ -62,10 +66,11 @@ def parse_user_header_status(page_content):
         headers = page_content.find_all("div", {"class": "header-metadata-display"})
         for i in range(min(len(headers), 3)):
             cleaned_text = headers[i].text.strip()
-            header_status[i] = int(get_removal(cleaned_text, ',', int))
+            header_status[i] = int(get_removal(cleaned_text, ",", int))
     except Exception as e:
         logger.error(f"Error parsing user header status: {e}")
     return header_status
+
 
 def get_user_data(username) -> UserState:
     """
@@ -81,20 +86,19 @@ def get_user_data(username) -> UserState:
 
     response = get_response(USER_PROFILE_URL)
     state = UserState(username=username)
-    
+
     if response.status_code in range(200, 299):
         dom = get_dom(response)
         state.display_name = parse_user_display_name(dom)
         state.avatar_url = parse_user_avatar_url(dom)
-        
+
         headers = parse_user_header_status(dom)
         if len(headers) >= 3:
             state.total_scrobbles = headers[0]
-            state.total_artists = headers[1] 
+            state.total_artists = headers[1]
             state.total_loved_tracks = headers[2]
-            
+
         logger.debug(f"User data retrieved successfully for {username}")
         return state
-    else:
-        logger.error(f"Failed to retrieve user data for {username}, status code: {response.status_code}")
-        return state
+    logger.error(f"Failed to retrieve user data for {username}, status code: {response.status_code}")
+    return state

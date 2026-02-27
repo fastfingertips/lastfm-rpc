@@ -43,5 +43,63 @@ build-backend = "hatchling.build"
 dev = [
     "imageio>=2.37.2",
     "nuitka>=4.0.1",
+    "pyright>=1.1.408",
+    "ruff>=0.15.4",
+    "vulture>=2.14",
     "zstandard>=0.25.0",
 ]
+
+# ── Ruff (Linting + Formatting) ──────────────────────────
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "LOG",  # flake8-logging
+    "N",    # pep8-naming
+    "RET",  # flake8-return
+    "PERF", # perflint
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "SIM108", # use ternary operator (readability preference)
+    "N802",   # function name should be lowercase (RPC, GUI etc.)
+    "N806",   # variable in function should be lowercase (RPC etc.)
+    "RET504", # unnecessary assignment before return
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["api", "core", "utils", "constants"]
+
+[tool.ruff.lint.per-file-ignores]
+"main.py" = ["E402"]  # setup_logging() must run before imports
+
+# ── Pyright (Type Checking) ──────────────────────────────
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "basic"
+reportMissingImports = true
+reportMissingTypeStubs = false
+reportUnusedImport = true
+exclude = [
+    ".venv",
+    "build.py",
+    "dist",
+    "__pycache__",
+]
+
+# ── Vulture (Dead Code Detection) ────────────────────────
+[tool.vulture]
+min_confidence = 80
+paths = ["api", "core", "utils", "main.py"]
+exclude = [".venv", "dist", "__pycache__"]
+ignore_names = ["item"]  # pystray callbacks require (icon, item) signature

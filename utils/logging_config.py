@@ -1,14 +1,17 @@
-import sys
+import logging
 import os
 import platform
-import logging
+import sys
+
 from loguru import logger
+
 
 class InterceptHandler(logging.Handler):
     """
     Standard logging handler to intercept calls from external libraries
     and route them to Loguru.
     """
+
     def emit(self, record):
         # Get corresponding Loguru level if it exists
         try:
@@ -24,10 +27,11 @@ class InterceptHandler(logging.Handler):
 
         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
+
 def log_system_info():
     """Logs essential system and application info for debugging."""
-    from constants.project import VERSION, APP_NAME
-    
+    from constants.project import APP_NAME, VERSION
+
     # We use a custom 'system' tag/module name in loguru style
     sys_logger = logger.bind(name="system")
     sys_logger.debug("--- System Information ---")
@@ -39,12 +43,13 @@ def log_system_info():
     sys_logger.debug(f"Working Directory: {os.getcwd()}")
     sys_logger.debug("--------------------------")
 
+
 def setup_logging(level="INFO"):
     """Configures Loguru for the application."""
-    
+
     # Remove default loguru handler
     logger.remove()
-    
+
     # 1. Console Handler (Colored & Vibrant)
     # Using loguru's rich formatting
     # <green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>
@@ -55,26 +60,16 @@ def setup_logging(level="INFO"):
         "<blue>[{extra[name]}]</blue> "
         "- {message}"
     )
-    
-    logger.add(
-        sys.stdout, 
-        level=level, 
-        format=console_format,
-        colorize=True,
-        backtrace=True,
-        diagnose=True
-    )
-    
+
+    logger.add(sys.stdout, level=level, format=console_format, colorize=True, backtrace=True, diagnose=True)
+
     # 2. File Handler (with Rotation and Compression)
     log_dir = "logs"
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-        
-    file_format = (
-        "[{time:YYYY-MM-DD HH:mm:ss}] {level: <8} [{extra[name]}] "
-        "[{file}:{line}] {function}() - {message}"
-    )
-    
+
+    file_format = "[{time:YYYY-MM-DD HH:mm:ss}] {level: <8} [{extra[name]}] [{file}:{line}] {function}() - {message}"
+
     logger.add(
         os.path.join(log_dir, "app.log"),
         level="DEBUG",
@@ -82,12 +77,12 @@ def setup_logging(level="INFO"):
         rotation="5 MB",
         retention="3 days",
         compression="zip",
-        encoding="utf-8"
+        encoding="utf-8",
     )
 
     # 3. Intercept standard logging (for libraries like pylast, pypresence)
     logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
-    
+
     # Adjust levels for specific libraries to reduce noise
     for lib in ["httpcore", "httpx", "pylast", "pypresence", "urllib3", "pystray", "asyncio"]:
         logging.getLogger(lib).setLevel(logging.WARNING)

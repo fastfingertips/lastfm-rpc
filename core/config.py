@@ -1,31 +1,34 @@
-from loguru import logger
 import os
+
 import yaml
-from typing import Dict, Optional, Tuple
+from loguru import logger
+from pydantic import BaseModel, Field
 
-from pydantic import BaseModel, Field, field_validator
-
-logger = logger.bind(name='config')
+logger = logger.bind(name="config")
 
 
 class UserConfig(BaseModel):
     """User-specific settings."""
+
     username: str = Field(default="", alias="USERNAME")
 
 
 class ApiConfig(BaseModel):
     """API credentials."""
+
     key: str = Field(default="", alias="KEY")
     secret: str = Field(default="", alias="SECRET")
 
 
 class AppSettingsConfig(BaseModel):
     """Application-level settings."""
+
     lang: str = Field(default="en-US", alias="LANG")
 
 
 class AppConfig(BaseModel):
     """Root configuration model representing config.yaml structure."""
+
     user: UserConfig = Field(default_factory=UserConfig, alias="USER")
     api: ApiConfig = Field(default_factory=ApiConfig, alias="API")
     app: AppSettingsConfig = Field(default_factory=AppSettingsConfig, alias="APP")
@@ -53,14 +56,12 @@ class AppConfig(BaseModel):
         """Checks if the configuration has all required values and no placeholders."""
         if not all([self.username, self.api_key, self.api_secret]):
             return False
-        if "<" in self.username or "<" in self.api_key:
-            return False
-        return True
+        return not ("<" in self.username or "<" in self.api_key)
 
 
 class ConfigManager:
     """
-    Manages application configuration, including loading, saving, and 
+    Manages application configuration, including loading, saving, and
     providing access to settings and translations.
     """
 
@@ -68,7 +69,7 @@ class ConfigManager:
         self.config_path = config_path
         self.translations_dir = translations_dir
         self._config = AppConfig()
-        self.translations: Dict[str, str] = {}
+        self.translations: dict[str, str] = {}
 
     # Shortcut properties delegating to AppConfig
     @property
@@ -90,7 +91,7 @@ class ConfigManager:
     def load(self):
         """Loads configuration from YAML file and initializes translations."""
         try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
+            with open(self.config_path, encoding="utf-8") as f:
                 raw = yaml.safe_load(f) or {}
 
             # Pydantic handles validation and defaults automatically
@@ -111,14 +112,14 @@ class ConfigManager:
         self._config = AppConfig(
             user=UserConfig(USERNAME=username),
             api=ApiConfig(KEY=api_key, SECRET=api_secret),
-            app=AppSettingsConfig(LANG=lang)
+            app=AppSettingsConfig(LANG=lang),
         )
 
         # Convert to YAML-friendly dict using aliases
         config_dict = {
-            'USER': {'USERNAME': self.username},
-            'API': {'KEY': self.api_key, 'SECRET': self.api_secret},
-            'APP': {'LANG': self.app_lang}
+            "USER": {"USERNAME": self.username},
+            "API": {"KEY": self.api_key, "SECRET": self.api_secret},
+            "APP": {"LANG": self.app_lang},
         }
 
         try:
@@ -134,7 +135,7 @@ class ConfigManager:
             logger.error(f"Error saving configuration: {e}")
             return False
 
-    def get_all_config(self) -> Tuple[str, str, str, str]:
+    def get_all_config(self) -> tuple[str, str, str, str]:
         """Returns the primary configuration values as a tuple."""
         return self.username, self.api_key, self.api_secret, self.app_lang
 
@@ -142,11 +143,11 @@ class ConfigManager:
         """Delegates completeness check to the Pydantic model."""
         return self._config.is_complete()
 
-    def _load_translations(self, lang: str) -> Dict[str, str]:
+    def _load_translations(self, lang: str) -> dict[str, str]:
         """Load translations from a YAML file based on language code."""
         file_path = os.path.join(self.translations_dir, f"{lang}.yaml")
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 translations = yaml.safe_load(f) or {}
             logger.info(f"Translations for '{lang}' loaded successfully from {file_path}")
             return translations
