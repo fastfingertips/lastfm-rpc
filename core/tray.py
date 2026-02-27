@@ -176,13 +176,13 @@ class TrayManager:
         current_vals = config.get_all_config()
 
         def save_and_reload(new_config):
-            # Extract values from new_config dict
-            u = new_config.get("USER", {}).get("USERNAME", config.username)
-            k = new_config.get("API", {}).get("KEY", config.api_key)
-            s = new_config.get("API", {}).get("SECRET", config.api_secret)
-            lang = new_config.get("APP", {}).get("LANG", config.app_lang)
+            u = new_config.get("USER", {}).get("USERNAME")
+            k = new_config.get("API", {}).get("KEY")
+            s = new_config.get("API", {}).get("SECRET")
+            lang = new_config.get("APP", {}).get("LANG")
+            rpc_data = new_config.get("RPC")
 
-            if config.save(u, k, s, lang):
+            if config.save(u, k, s, lang, rpc_config=rpc_data):
                 # Reload config to update all properties
                 config.load()
 
