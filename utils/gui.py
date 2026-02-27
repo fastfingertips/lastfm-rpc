@@ -1,14 +1,13 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 import os
-import logging
+from loguru import logger
 
 # Ensure absolute paths if needed, but constants handle paths
 from constants.project import TRANSLATIONS_DIR, APP_NAME
 from utils.string_utils import messenger
 from utils.url_utils import open_url
-
-logger = logging.getLogger('gui')
+from utils.ui_utils import show_warning
 
 class ConfigGUI:
     def __init__(self, current_config_values, on_save_callback):
@@ -88,7 +87,7 @@ class ConfigGUI:
         }
         
         if not all([config_data['API']['KEY'], config_data['API']['SECRET'], config_data['USER']['USERNAME']]):
-            messagebox.showwarning(messenger('gui_warning_title'), messenger('gui_warning_body'))
+            show_warning(messenger('gui_warning_title'), messenger('gui_warning_body'), parent=self.root)
             return
 
         if self.on_save(config_data):

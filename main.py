@@ -9,7 +9,7 @@ def check_config():
     """Checks if the configuration is complete. If not, opens the GUI."""
     if not project.config_manager.is_complete():
         logger.warning("Configuration incomplete or placeholder detected. Opening settings...")
-        from utils.gui import ConfigGUI
+        from utils.ui_utils import ask_config_gui
         import sys
 
         def save_and_exit(new_config):
@@ -25,8 +25,7 @@ def check_config():
             return False
 
         current_vals = project.config_manager.get_all_config()
-        gui = ConfigGUI(current_vals, save_and_exit)
-        gui.run()
+        ask_config_gui(current_vals, save_and_exit)
         return False
     return True
 

@@ -7,6 +7,7 @@ import os
 import constants.project as project
 from utils.string_utils import messenger
 from utils.url_utils import open_url
+from utils.ui_utils import show_info, ask_yes_no
 from api.lastfm.models import TrackInfo
 from api.lastfm.user.tracking import User
 from api.discord.rpc import DiscordRPC
@@ -164,8 +165,7 @@ class App:
                 self.tray.notify(str(e), messenger('action_required'))
                 
                 # Ask the user if they want to open settings
-                from tkinter import messagebox
-                if messagebox.askyesno(messenger('err'), messenger('api_error_prompt', str(e))):
+                if ask_yes_no(messenger('err'), messenger('api_error_prompt', str(e))):
                     # Call open_settings from the tray manager
                     self.tray.open_settings(None, None)
                 
@@ -204,34 +204,21 @@ class App:
         """Check for updates manually in a non-blocking way."""
         def run_manual_check():
             from utils.update_checker import check_for_updates
-            import tkinter as tk
-            from tkinter import messagebox
-            
-            # Create a hidden root for the messagebox to ensure it has an owner
-            # and doesn't interfere with the main thread's message loop if any
-            root = tk.Tk()
-            root.withdraw()
-            root.attributes("-topmost", True)
-            
             is_avail, ver_name, url = check_for_updates()
             
             if is_avail:
                 self.latest_update = (is_avail, ver_name, url)
                 self.tray.refresh()
-                if messagebox.askyesno(
+                if ask_yes_no(
                     messenger('menu_check_updates'), 
-                    messenger('update_available', ver_name) + "\n\nDo you want to visit the download page?",
-                    parent=root
+                    messenger('update_available', ver_name) + "\n\nDo you want to visit the download page?"
                 ):
                     if url: open_url(url)
             else:
-                messagebox.showinfo(
+                show_info(
                     messenger('menu_check_updates'), 
-                    messenger('update_not_found'),
-                    parent=root
+                    messenger('update_not_found')
                 )
-            
-            root.destroy()
 
         threading.Thread(target=run_manual_check, daemon=True).start()
 

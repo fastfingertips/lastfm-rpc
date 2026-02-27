@@ -1,13 +1,13 @@
 from loguru import logger
 import sys
 import os
-from tkinter import messagebox
 from pystray import Icon, Menu, MenuItem
 from PIL import Image
 
 import constants.project as project
 from utils.string_utils import messenger
 from utils.url_utils import open_url
+from utils.ui_utils import show_error, ask_config_gui
 
 logger = logger.bind(name='app')
 
@@ -32,7 +32,7 @@ class TrayManager:
         try:
             return Image.open(os.path.join(directory, project.APP_ICON_PATH))
         except FileNotFoundError:
-            messagebox.showerror(messenger('err'), messenger('err_assets'))
+            show_error(messenger('err'), messenger('err_assets'))
             sys.exit(1)
 
     def setup_tray_icon(self):
@@ -163,15 +163,7 @@ class TrayManager:
 
         def run_gui():
             try:
-                gui = ConfigGUI(current_vals, save_and_reload)
-                # Keep track of when it's closed
-                def on_close():
-                    self._settings_open = False
-                    gui.root.quit()
-                    gui.root.destroy()
-                
-                gui.root.protocol("WM_DELETE_WINDOW", on_close)
-                gui.run()
+                ask_config_gui(current_vals, save_and_reload)
             finally:
                 self._settings_open = False
 
