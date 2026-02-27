@@ -1,5 +1,6 @@
 from constants.project import LASTFM_LIBRARY_URL
-from utils.request_utils import get_dom, get_response
+from utils.html_utils import get_dom
+from utils.request_utils import get_response
 from utils.string_utils import get_removal
 from utils.url_utils import url_encoder
 

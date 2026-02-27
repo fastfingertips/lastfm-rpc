@@ -1,7 +1,6 @@
 import time
 
 import requests
-from bs4 import BeautifulSoup
 from loguru import logger
 
 from constants.project import MAX_RETRIES, RETRY_INTERVAL
@@ -41,16 +40,3 @@ def get_json(url: str, **kwargs) -> dict | None:
         except ValueError as e:
             logger.error(f"Failed to parse JSON from {url}: {e}")
     return None
-
-
-def get_dom(response: requests.Response) -> BeautifulSoup:
-    """
-    Parses the response content into a BeautifulSoup object.
-
-    Args:
-        response (requests.Response): The response object.
-
-    Returns:
-        BeautifulSoup: The parsed HTML content.
-    """
-    return BeautifulSoup(response.content, "html.parser")
