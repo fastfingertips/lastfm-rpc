@@ -144,25 +144,22 @@ class TrayManager:
         current_vals = (project.USERNAME, project.API_KEY, project.API_SECRET, project.APP_LANG)
         
         def save_and_reload(new_config):
-            try:
-                import yaml
-                with open("config.yaml", "w", encoding="utf-8") as f:
-                    yaml.dump(new_config, f, default_flow_style=False)
-                
-                # Dynamic reload without restart
-                from constants.project import reload_constants
-                reload_constants()
+            # Extract values from new_config dict
+            u = new_config.get('USER', {}).get('USERNAME', project.USERNAME)
+            k = new_config.get('API', {}).get('KEY', project.API_KEY)
+            s = new_config.get('API', {}).get('SECRET', project.API_SECRET)
+            l = new_config.get('APP', {}).get('LANG', project.APP_LANG)
+            
+            if project.config_manager.save(u, k, s, l):
+                # Sync global variables in project.py
+                project.reload_constants()
                 
                 # Refresh UI and track
                 self.app.current_track_name = messenger('no_track')
                 self.app.config_needs_reload = True
                 self.refresh()
-                
-                logger.info("Config updated and reloaded via GUI.")
                 return True
-            except Exception as e:
-                logger.error(f"Failed to save config: {e}")
-                return False
+            return False
 
         def run_gui():
             try:

@@ -1,30 +1,31 @@
 import logging
 from utils.logging_config import setup_logging
-from constants.project import USERNAME, API_KEY, API_SECRET, APP_LANG
+import constants.project as project
 
 # Configure enhanced logging
 setup_logging(level=logging.INFO)
 
 def check_config():
     """Checks if the configuration is complete. If not, opens the GUI."""
-    if not all([USERNAME, API_KEY, API_SECRET]) or (USERNAME and "<" in str(USERNAME)):
+    if not project.config_manager.is_complete():
         logging.warning("Configuration incomplete or placeholder detected. Opening settings...")
         from utils.gui import ConfigGUI
-        import yaml
         import sys
 
         def save_and_exit(new_config):
-            try:
-                with open("config.yaml", "w", encoding="utf-8") as f:
-                    yaml.dump(new_config, f, default_flow_style=False)
-                logging.info("Configuration saved successfully. Please restart the application to apply changes.")
-                # We exit here because constants are already loaded with old/empty values
+            # Extract values from new_config dict
+            u = new_config.get('USER', {}).get('USERNAME', project.USERNAME)
+            k = new_config.get('API', {}).get('KEY', project.API_KEY)
+            s = new_config.get('API', {}).get('SECRET', project.API_SECRET)
+            l = new_config.get('APP', {}).get('LANG', project.APP_LANG)
+            
+            if project.config_manager.save(u, k, s, l):
+                logging.info("Configuration saved successfully. Please restart the application.")
                 sys.exit(0)
-            except Exception as e:
-                logging.error(f"Failed to save configuration: {e}")
-                return False
+            return False
 
-        gui = ConfigGUI((USERNAME, API_KEY, API_SECRET, APP_LANG), save_and_exit)
+        current_vals = project.config_manager.get_all_config()
+        gui = ConfigGUI(current_vals, save_and_exit)
         gui.run()
         return False
     return True

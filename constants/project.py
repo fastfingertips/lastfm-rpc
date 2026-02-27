@@ -1,28 +1,36 @@
-from utils.reader import load_config, load_translations
+from core.config import ConfigManager
 
 # Paths
 TRANSLATIONS_DIR = "translations"
 ASSETS_DIR = "assets"
 APP_ICON_PATH = "assets/last_fm.png"
 
-# These will be updated by reload_constants()
-USERNAME = ""
-API_KEY = ""
-API_SECRET = ""
-APP_LANG = "en-US"
-TRANSLATIONS = {}
+# Initialize ConfigManager
+config_manager = ConfigManager(translations_dir=TRANSLATIONS_DIR)
+
+# Expose properties for backward compatibility
+USERNAME = config_manager.username
+API_KEY = config_manager.api_key
+API_SECRET = config_manager.api_secret
+APP_LANG = config_manager.app_lang
+TRANSLATIONS = {} # Store in a persistent dict
 
 def reload_constants():
     """Re-reads config.yaml and updates the global constants and translations."""
     global USERNAME, API_KEY, API_SECRET, APP_LANG
-    USERNAME, API_KEY, API_SECRET, APP_LANG = load_config()
+    config_manager.load()
     
-    # Update translations in-place to preserve references in other modules
-    new_translations = load_translations(APP_LANG, TRANSLATIONS_DIR)
+    # Update the exposed global variables
+    USERNAME = config_manager.username
+    API_KEY = config_manager.api_key
+    API_SECRET = config_manager.api_secret
+    APP_LANG = config_manager.app_lang
+    
+    # Update translations in-place to preserve references
     TRANSLATIONS.clear()
-    TRANSLATIONS.update(new_translations)
+    TRANSLATIONS.update(config_manager.translations)
 
-# Perform initial load
+# Perform initial load to populate everything
 reload_constants()
 
 # Project Info
