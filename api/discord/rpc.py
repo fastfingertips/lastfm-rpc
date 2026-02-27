@@ -10,6 +10,8 @@ from pypresence.presence import Presence
 from pypresence import exceptions
 from pypresence.types import ActivityType, StatusDisplayType
 
+from api.discord.formatter import format_rpc_text
+
 from utils.url_utils import url_encoder
 from utils.string_utils import messenger
 from constants.project import (
@@ -118,33 +120,6 @@ class DiscordRPC:
         """
         self._disconnect()
 
-    def _format_image_text(self, lines, limit, xchar):
-        """Processes and formats text for RPC images while strictly preserving comments."""
-        logger.debug(f"Format Text: {list(lines.keys())}")
-        result_text = ''
-        
-        for line_key in lines:
-            line = f'{lines[line_key]} '
-            if line_key in ['theme', 'artist_scrobbles', 'first_time']:
-                # Processing logic for large image lines
-                if len(lines) == 1: 
-                    result_text = line
-                else:
-                    """
-                    line_suffix = "" if len(line) > 20 else (line_limit - len(line) - sum(_.isupper() for _ in line))*xchar
-                    rpc_large_image_text += f'{line}{line_suffix} '
-                    """
-                    result_text += f'{line}{(limit - len(line) - sum(c.isupper() for c in line))*xchar} '
-            else:
-                # Processing logic for small image lines
-                line_suffix = "" if len(line) > 20 else (limit - len(line) - sum(c.isupper() for c in line))*xchar
-                result_text += f'{line}{line_suffix} '
-        
-                # if the text is too long, cut it
-        if len(result_text) > 128:
-            result_text = result_text.replace(xchar, '')
-            
-        return result_text.strip()
 
     def _prepare_artwork_status(self, artwork, artist_count, library_data):
         """Handles artwork fallback and library scrobble counts."""
@@ -275,17 +250,19 @@ class DiscordRPC:
             small_image = LASTFM_ICON_URL
 
         # Hover Text
-        stats = []
+        stats_lines = {}
         if self.show_username: 
-            stats.append(f"@{user_state.username}")
+            display = user_state.display_name or user_state.username
+            stats_lines['username'] = f"{display} (@{user_state.username})"
+            
         if self.show_scrobbles:
-            stats.append(messenger('rpc_scrobbles', user_state.total_scrobbles))
+            stats_lines['scrobbles'] = messenger('rpc_scrobbles', user_state.total_scrobbles)
         if self.show_artists:
-            stats.append(messenger('rpc_artists', user_state.total_artists))
+            stats_lines['artists'] = messenger('rpc_artists', user_state.total_artists)
         if self.show_loved:
-            stats.append(messenger('rpc_loved_tracks', user_state.total_loved_tracks))
-
-        small_text = ", ".join(stats) if stats else None
+            stats_lines['loved'] = messenger('rpc_loved_tracks', user_state.total_loved_tracks)
+            
+        small_text = format_rpc_text(stats_lines)
         return small_image, small_text
 
     def _prepare_artwork_and_large_text(self, artwork, album, library_data):
@@ -293,7 +270,7 @@ class DiscordRPC:
         artist_count = library_data["artist_count"]
         artwork, lines = self._prepare_artwork_status(artwork, artist_count, library_data)
         
-        text = self._format_image_text(lines, RPC_LINE_LIMIT, RPC_XCHAR)
+        text = format_rpc_text(lines)
         if not text or text.strip() == "":
             text = album if album else messenger('rpc_listening_now')
         
