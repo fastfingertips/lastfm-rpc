@@ -15,6 +15,10 @@ def format_rpc_text(lines: dict, limit: int = RPC_LINE_LIMIT, xchar: str = RPC_X
         str: A single formatted string for Discord RPC.
     """
     logger.debug(f"Formatting RPC text for keys: {list(lines.keys())}")
+    
+    if not lines:
+        return None
+        
     result_text = ''
     
     # We only pad if there's something to "wrap" to the next line
@@ -45,4 +49,5 @@ def format_rpc_text(lines: dict, limit: int = RPC_LINE_LIMIT, xchar: str = RPC_X
         if len(result_text) > 128:
             result_text = result_text[:125] + "..."
 
-    return result_text.strip()
+    final_text = result_text.strip()
+    return final_text if final_text else None

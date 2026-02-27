@@ -280,8 +280,10 @@ class DiscordRPC:
         """Sends the prepared payload to Discord."""
         if self.RPC:
             try:
-                logger.debug(f"RPC update_assets: {update_assets}")
-                self.RPC.update(**update_assets)
+                # Clean up None values to avoid sending empty/null fields to Discord
+                payload = {k: v for k, v in update_assets.items() if v is not None}
+                logger.debug(f"RPC payload: {payload}")
+                self.RPC.update(**payload)
             except Exception as e:
                 logger.error(f'Error updating RPC: {e}')
                 # If update fails (e.g. BrokenPipe, Request Terminated), force disconnect
