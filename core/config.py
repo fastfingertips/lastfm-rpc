@@ -1,10 +1,10 @@
-import logging
+from loguru import logger
 import os
 import yaml
 from typing import Dict, Any, Tuple
 from utils.reader import load_yaml_file, load_translations
 
-logger = logging.getLogger('config')
+logger = logger.bind(name='config')
 
 from dataclasses import dataclass, asdict
 

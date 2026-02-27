@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 import webbrowser
 import sys
 import os
@@ -9,7 +9,7 @@ from PIL import Image
 import constants.project as project
 from utils.string_utils import messenger
 
-logger = logging.getLogger('app')
+logger = logger.bind(name='app')
 
 class TrayManager:
     def __init__(self, app):

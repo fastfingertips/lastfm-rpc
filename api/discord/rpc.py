@@ -1,5 +1,5 @@
 import datetime
-import logging
+from loguru import logger
 
 from api.lastfm.user.library import get_library_data
 from api.lastfm.user.profile import get_user_data
@@ -18,7 +18,7 @@ from constants.project import (
     DEFAULT_AVATAR_URL, LASTFM_ICON_URL
 )
 
-logger = logging.getLogger('rpc')
+logger = logger.bind(name='rpc')
 
 class DiscordRPC:
     def __init__(self):

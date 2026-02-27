@@ -1,14 +1,14 @@
-import logging
+from loguru import logger
 from utils.logging_config import setup_logging
 import constants.project as project
 
 # Configure enhanced logging
-setup_logging(level=logging.INFO)
+setup_logging(level="INFO")
 
 def check_config():
     """Checks if the configuration is complete. If not, opens the GUI."""
     if not project.config_manager.is_complete():
-        logging.warning("Configuration incomplete or placeholder detected. Opening settings...")
+        logger.warning("Configuration incomplete or placeholder detected. Opening settings...")
         from utils.gui import ConfigGUI
         import sys
 
@@ -20,7 +20,7 @@ def check_config():
             l = new_config.get('APP', {}).get('LANG', project.APP_LANG)
             
             if project.config_manager.save(u, k, s, l):
-                logging.info("Configuration saved successfully. Please restart the application.")
+                logger.info("Configuration saved successfully. Please restart the application.")
                 sys.exit(0)
             return False
 
@@ -37,7 +37,7 @@ def main():
             app = App()
             app.run()
         except Exception as e:
-            logging.critical(f"Application failed to start: {e}", exc_info=True)
+            logger.critical(f"Application failed to start: {e}")
 
 if __name__ == "__main__":
     main()

@@ -1,5 +1,5 @@
 import asyncio
-import logging
+from loguru import logger
 import threading
 import sys
 import os
@@ -10,14 +10,15 @@ from api.lastfm.user.tracking import User
 from api.discord.rpc import DiscordRPC
 from core.tray import TrayManager
 
-logger = logging.getLogger('app')
+logger = logger.bind(name='app')
 
 class App:
     def __init__(self):
         self.rpc = DiscordRPC()
         self.current_track_name = messenger('no_track')
         self._rpc_connected = False
-        self.debug_enabled = logging.getLogger().getEffectiveLevel() == logging.DEBUG
+        # Loguru doesn't use standard getEffectiveLevel. We'll use a local flag.
+        self.debug_enabled = False 
         
         # Initialize flags and states
         self.config_needs_reload = False
@@ -42,11 +43,15 @@ class App:
     def toggle_debug(self, icon, item):
         """Toggles between DEBUG and INFO logging levels."""
         self.debug_enabled = not self.debug_enabled
-        new_level = logging.DEBUG if self.debug_enabled else logging.INFO
-        logging.getLogger().setLevel(new_level)
-        for handler in logging.getLogger().handlers:
-            handler.setLevel(new_level)
-        logger.info(f"Logging level set to: {'DEBUG' if self.debug_enabled else 'INFO'}")
+        new_level = "DEBUG" if self.debug_enabled else "INFO"
+        
+        # In loguru, we change the level by removing and re-adding handlers 
+        # but for simplicity in a desktop app, we can just use the bound logger's logic 
+        # or reconfiguration. Here we re-setup with the new level.
+        from utils.logging_config import setup_logging
+        setup_logging(level=new_level)
+        
+        logger.info(f"Logging level set to: {new_level}")
 
     def toggle_display_option(self, option):
         """Toggles a display option for the Discord RPC."""

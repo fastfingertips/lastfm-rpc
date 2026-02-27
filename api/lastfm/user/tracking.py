@@ -1,9 +1,8 @@
-import logging
-
+from loguru import logger
 import pylast
 import constants.project as project
 
-logger = logging.getLogger('lastfm')
+logger = logger.bind(name='lastfm')
 
 class APIKeyError(Exception):
     """Exception raised for fatal Last.fm API key issues."""

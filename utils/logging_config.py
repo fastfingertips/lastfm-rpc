@@ -1,140 +1,100 @@
-import logging
 import sys
 import os
 import platform
-from logging.handlers import RotatingFileHandler
+import logging
+from loguru import logger
 
-class ColoredFormatter(logging.Formatter):
-    """Custom logging formatter for vibrant and readable terminal output."""
-    
-    # ANSI escape codes for colors
-    COLORS = {
-        'DEBUG': '\033[38;5;244m',    # Steel Grey
-        'INFO': '\033[38;5;82m',      # Vibrant Green
-        'WARNING': '\033[38;5;214m',   # Orange/Yellow
-        'ERROR': '\033[38;5;196m',     # Bright Red
-        'CRITICAL': '\033[1;37;41m',   # White on Red background
-    }
-    
-    # Symbols for each level
-    LEVEL_SYMBOLS = {
-        'DEBUG': '[#]',
-        'INFO': '[+]',
-        'WARNING': '[!]',
-        'ERROR': '[-]',
-        'CRITICAL': '[X]',
-    }
-    
-    RESET = '\033[0m'
-    BOLD = '\033[1m'
+class InterceptHandler(logging.Handler):
+    """
+    Standard logging handler to intercept calls from external libraries
+    and route them to Loguru.
+    """
+    def emit(self, record):
+        # Get corresponding Loguru level if it exists
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
 
-    def format(self, record):
-        # Determine color and symbol
-        level_color = self.COLORS.get(record.levelname, self.RESET)
-        level_symbol = self.LEVEL_SYMBOLS.get(record.levelname, '[•]')
-        
-        # Format timestamp safely
-        time_str = self.formatTime(record, "%H:%M:%S")
-        
-        # Truncate extremely long messages (like XML dumps) for terminal readability
-        message = record.getMessage()
-        if len(message) > 500:
-            message = message[:500] + "... [TRUNCATED]"
-            
-        # Color certain parts of the message for better scanning
-        log_fmt = (
-            f"{self.COLORS['DEBUG']}[{time_str}]{self.RESET} "
-            f"{level_color}{self.BOLD}{level_symbol} {record.levelname:<8}{self.RESET} "
-            f"{self.COLORS['DEBUG']}[{record.name}]{self.RESET} "
-            f"- {message}"
-        )
-        
-        # Handle exceptions if they exist
-        if record.exc_info:
-            if not record.exc_text:
-                record.exc_text = self.formatException(record.exc_info)
-        
-        if record.exc_text:
-            log_fmt += f"\n{self.COLORS['ERROR']}{record.exc_text}{self.RESET}"
-            
-        return log_fmt
+        # Find caller from where originated the logged message
+        frame, depth = logging.currentframe(), 2
+        while frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
 
-class FileFormatter(logging.Formatter):
-    """Detailed formatter for log files, including line numbers and functions."""
-    def format(self, record):
-        time_str = self.formatTime(record, "%Y-%m-%d %H:%M:%S")
-        message = record.getMessage()
-        # Include filename and line number for easier debugging in file logs
-        location = f"{record.filename}:{record.lineno}"
-        log_fmt = f"[{time_str}] {record.levelname:<8} [{record.name}] [{location}] {record.funcName}() - {message}"
-        
-        if record.exc_info:
-            if not record.exc_text:
-                record.exc_text = self.formatException(record.exc_info)
-        if record.exc_text:
-            log_fmt += f"\n{record.exc_text}"
-        return log_fmt
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 def log_system_info():
     """Logs essential system and application info for debugging."""
     from constants.project import VERSION, APP_NAME
-    logger = logging.getLogger('system')
-    logger.debug("--- System Information ---")
-    logger.debug(f"Application: {APP_NAME} v{VERSION}")
-    logger.debug(f"OS: {platform.system()} {platform.release()} ({platform.version()})")
-    logger.debug(f"Architecture: {platform.machine()}")
-    logger.debug(f"Python Version: {sys.version}")
-    logger.debug(f"Executable: {sys.executable}")
-    logger.debug(f"Working Directory: {os.getcwd()}")
-    logger.debug("--------------------------")
+    
+    # We use a custom 'system' tag/module name in loguru style
+    sys_logger = logger.bind(name="system")
+    sys_logger.debug("--- System Information ---")
+    sys_logger.debug(f"Application: {APP_NAME} v{VERSION}")
+    sys_logger.debug(f"OS: {platform.system()} {platform.release()} ({platform.version()})")
+    sys_logger.debug(f"Architecture: {platform.machine()}")
+    sys_logger.debug(f"Python Version: {sys.version}")
+    sys_logger.debug(f"Executable: {sys.executable}")
+    sys_logger.debug(f"Working Directory: {os.getcwd()}")
+    sys_logger.debug("--------------------------")
 
-def setup_logging(level=logging.INFO):
-    """Configures the enhanced logging for the application."""
+def setup_logging(level="INFO"):
+    """Configures Loguru for the application."""
     
-    # Enable ANSI escape sequences on Windows if possible
-    if sys.platform == 'win32':
-        os.system('') # This is a trick to enable ANSI support in Windows CMD
+    # Remove default loguru handler
+    logger.remove()
     
-    logger = logging.getLogger()
-    # Support maximum detail for handlers to pick from
-    logger.setLevel(logging.DEBUG) 
+    # 1. Console Handler (Colored & Vibrant)
+    # Using loguru's rich formatting
+    # <green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>
+    # We'll try to keep it close to our previous style
+    console_format = (
+        "<white>[{time:HH:mm:ss}]</white> "
+        "<level>{level.icon} {level: <8}</level> "
+        "<blue>[{extra[name]}]</blue> "
+        "- {message}"
+    )
     
-    # Remove existing handlers to avoid double logging
-    for handler in logger.handlers[:]:
-        logger.removeHandler(handler)
+    logger.add(
+        sys.stdout, 
+        level=level, 
+        format=console_format,
+        colorize=True,
+        backtrace=True,
+        diagnose=True
+    )
+    
+    # 2. File Handler (with Rotation and Compression)
+    log_dir = "logs"
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
         
-    # 1. Console Handler (Colored)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(level)
-    console_handler.setFormatter(ColoredFormatter())
-    logger.addHandler(console_handler)
+    file_format = (
+        "[{time:YYYY-MM-DD HH:mm:ss}] {level: <8} [{extra[name]}] "
+        "[{file}:{line}] {function}() - {message}"
+    )
     
-    # 2. File Handler (Persistent)
-    try:
-        log_dir = "logs"
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-            
-        file_handler = RotatingFileHandler(
-            os.path.join(log_dir, "app.log"),
-            maxBytes=5*1024*1024, # 5MB
-            backupCount=3,
-            encoding='utf-8'
-        )
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(FileFormatter())
-        logger.addHandler(file_handler)
-    except Exception as e:
-        print(f"Failed to initialize file logging: {e}")
+    logger.add(
+        os.path.join(log_dir, "app.log"),
+        level="DEBUG",
+        format=file_format,
+        rotation="5 MB",
+        retention="3 days",
+        compression="zip",
+        encoding="utf-8"
+    )
+
+    # 3. Intercept standard logging (for libraries like pylast, pypresence)
+    logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
     
-    # Silence noisy external libraries
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("pylast").setLevel(logging.WARNING)
-    logging.getLogger("pypresence").setLevel(logging.WARNING)
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
-    logging.getLogger("pystray").setLevel(logging.WARNING)
-    logging.getLogger("asyncio").setLevel(logging.WARNING)
+    # Adjust levels for specific libraries to reduce noise
+    for lib in ["httpcore", "httpx", "pylast", "pypresence", "urllib3", "pystray", "asyncio"]:
+        logging.getLogger(lib).setLevel(logging.WARNING)
+
+    # Initialize daily logger binding to avoid KeyError if name is missing
+    # We do this by patching the logger to default to 'app' if no name is bound
+    logger.configure(extra={"name": "app"})
 
     # Log system metadata on startup
     log_system_info()

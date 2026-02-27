@@ -1,7 +1,7 @@
-import logging
+from loguru import logger
 import constants.project as project
 
-logger = logging.getLogger('utils')
+logger = logger.bind(name='utils')
 
 def messenger(key, *args):
     """
