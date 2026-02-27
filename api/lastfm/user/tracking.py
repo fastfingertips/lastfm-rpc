@@ -5,6 +5,10 @@ import constants.project as project
 
 logger = logging.getLogger('lastfm')
 
+class APIKeyError(Exception):
+    """Exception raised for fatal Last.fm API key issues."""
+    pass
+
 class User:
     def __init__(self, username, cooldown=None):
         from constants.project import API_KEY, API_SECRET, DEFAULT_COOLDOWN
@@ -22,10 +26,11 @@ class User:
         try:
             return self.lastfm_user.get_now_playing()
         except pylast.WSError as e:
-            if "Invalid API key" in str(e):
-                logger.critical("CRITICAL: Invalid API Key. Please update config.yaml with a valid key from Last.fm.")
-                import os
-                os._exit(1)
+            error_str = str(e)
+            if "Invalid API key" in error_str or "API Key Suspended" in error_str:
+                logger.critical(f"FATAL API ERROR: {error_str}")
+                raise APIKeyError(error_str)
+            
             logger.error(f"{project.TRANSLATIONS['pylast_ws_error'].format(self.cooldown)} | Details: {e}")
         except pylast.NetworkError:
             logger.error(project.TRANSLATIONS['pylast_network_error'])

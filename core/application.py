@@ -126,6 +126,7 @@ class App:
         logger.info(messenger('starting_rpc'))
         asyncio.set_event_loop(loop)
         
+        from api.lastfm.user.tracking import APIKeyError
         user = User(project.USERNAME)
 
         while True:
@@ -144,6 +145,27 @@ class App:
                 # Wait for next cycle or till an event is set
                 if self.update_event.wait(wait_time):
                     continue
+            except APIKeyError as e:
+                logger.critical(f"Stopping RPC loop due to API Key issue: {e}")
+                
+                # Update UI state
+                self.current_track_name = "Error: Invalid API Key"
+                self._rpc_connected = False
+                self.rpc.disable()
+                self.tray.update_title(self.current_track_name)
+                self.tray.refresh()
+                
+                # Show popup to the user
+                from tkinter import messagebox
+                messagebox.showerror(
+                    messenger('err'), 
+                    f"Last.fm API Error: {e}\n\nPlease check your API Key and Secret in Settings."
+                )
+                
+                # Stop the loop and wait for event (like settings save) to restart or stay idle
+                logger.info("RPC loop is now idle. Waiting for configuration change...")
+                self.update_event.wait()
+                continue
             except Exception as e:
                 logger.error(f"Unexpected error in RPC loop: {e}", exc_info=True)
                 # Small cooldown after failure
