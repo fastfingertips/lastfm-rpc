@@ -200,17 +200,40 @@ class App:
             return project.UPDATE_INTERVAL
 
     def check_updates_manual(self, icon, item):
-        """Check for updates manually and show a message box."""
-        from utils.update_checker import check_for_updates
-        from tkinter import messagebox
-        is_avail, ver_name, url = check_for_updates()
-        if is_avail:
-            self.latest_update = (is_avail, ver_name, url)
-            self.tray.refresh()
-            if messagebox.askyesno(messenger('menu_check_updates'), messenger('update_available', ver_name) + "\n\nDo you want to visit the download page?"):
-                if url: import webbrowser; webbrowser.open(url)
-        else:
-            messagebox.showinfo(messenger('menu_check_updates'), messenger('update_not_found'))
+        """Check for updates manually in a non-blocking way."""
+        def run_manual_check():
+            from utils.update_checker import check_for_updates
+            import tkinter as tk
+            from tkinter import messagebox
+            import webbrowser
+            
+            # Create a hidden root for the messagebox to ensure it has an owner
+            # and doesn't interfere with the main thread's message loop if any
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes("-topmost", True)
+            
+            is_avail, ver_name, url = check_for_updates()
+            
+            if is_avail:
+                self.latest_update = (is_avail, ver_name, url)
+                self.tray.refresh()
+                if messagebox.askyesno(
+                    messenger('menu_check_updates'), 
+                    messenger('update_available', ver_name) + "\n\nDo you want to visit the download page?",
+                    parent=root
+                ):
+                    if url: webbrowser.open(url)
+            else:
+                messagebox.showinfo(
+                    messenger('menu_check_updates'), 
+                    messenger('update_not_found'),
+                    parent=root
+                )
+            
+            root.destroy()
+
+        threading.Thread(target=run_manual_check, daemon=True).start()
 
     def trigger_startup_update_check(self):
         """Runs update check in a thread to not block startup."""
