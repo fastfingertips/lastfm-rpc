@@ -29,9 +29,6 @@ class ConfigManager:
         # Internal state using a dataclass
         self._data = AppConfig()
         self.translations: Dict[str, str] = {}
-        
-        # Initial load
-        self.load()
 
     @property
     def username(self) -> str: return self._data.username

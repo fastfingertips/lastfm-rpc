@@ -1,9 +1,9 @@
-from loguru import logger
 from utils.logging_config import setup_logging
-import constants.project as project
-
-# Configure enhanced logging
+# Configure enhanced logging as early as possible
 setup_logging(level="INFO")
+
+from loguru import logger
+import constants.project as project
 
 def check_config():
     """Checks if the configuration is complete. If not, opens the GUI."""
