@@ -151,7 +151,7 @@ class App:
         new_track_display = messenger("now_playing", formatted_track)
 
         # 1. IMMEDIATE UI UPDATE
-        self.rpc.enable()
+        # Note: self.rpc.enable() now handled at startup or via auto-reconnect
 
         has_track_changed = self.current_track_name != new_track_display
         has_conn_changed = self._rpc_connected != self.rpc.is_connected
@@ -180,13 +180,16 @@ class App:
             self._rpc_connected = self.rpc.is_connected
             logger.info(f"Tray Update: No track detected | Discord: {self._rpc_connected}")
             self.tray.update_title(self.current_track_name)
-        self.rpc.disable()
+        self.rpc.clear_status()
         self.tray.refresh()
 
     def run_rpc(self, loop):
         """Runs the RPC updater in a loop."""
         logger.info(messenger("starting_rpc"))
         asyncio.set_event_loop(loop)
+        
+        # Connect to Discord once at startup
+        self.rpc.enable()
 
         from core.exceptions import APIKeyError
 

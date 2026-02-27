@@ -93,13 +93,20 @@ class DiscordRPC:
         self._connect()
 
     def disable(self):
-        """
-        Disconnects from Discord.
-
-        Checks if the connection to Discord is not already disabled. If not,
-        it clears the current RPC state and closes the connection.
-        """
+        """Disconnects from Discord and resets connection state."""
         self._disconnect()
+
+    def clear_status(self):
+        """Clears the current activity from Discord without disconnecting."""
+        if self.RPC and self._enabled:
+            try:
+                self.RPC.clear()
+                self.last_track = None
+                self.current_artist = None
+                logger.debug("Cleared Discord RPC status")
+            except Exception as e:
+                logger.error(f"Error clearing RPC status: {e}")
+                self._disconnect()
 
     def _format_template(self, template: str, info: TrackInfo, username: str, user_state: UserState) -> str:
         """Helper to safely format templates with track and user data."""
