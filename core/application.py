@@ -155,6 +155,9 @@ class App:
                 self.tray.update_title(self.current_track_name)
                 self.tray.refresh()
                 
+                # Show tray notification first (ensure icon is seen)
+                self.tray.notify(f"Last.fm API Error: {e}", "Action Required")
+                
                 # Show popup to the user
                 from tkinter import messagebox
                 messagebox.showerror(
@@ -224,6 +227,14 @@ class App:
 
     def _on_setup(self, icon):
         """Callback to start backend tasks once the icon is running."""
+        import time
+        try:
+            # Explicitly ensure icon is visible and give Windows a moment to register it
+            icon.visible = True
+            time.sleep(0.5) 
+        except Exception as e:
+            logger.warning(f"Initial icon setup notice: {e}")
+
         # Start the background thread
         logger.info("Starting RPC background thread...")
         self.rpc_thread.start()
