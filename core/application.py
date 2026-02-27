@@ -149,19 +149,18 @@ class App:
                 logger.critical(f"Stopping RPC loop due to API Key issue: {e}")
                 
                 # Update UI state
-                self.current_track_name = "Error: Invalid API Key"
+                self.current_track_name = messenger('api_error_status')
                 self._rpc_connected = False
                 self.rpc.disable()
                 self.tray.update_title(self.current_track_name)
                 self.tray.refresh()
                 
                 # Show tray notification first (ensure icon is seen)
-                self.tray.notify(f"Last.fm API Error: {e}", "Action Required")
+                self.tray.notify(str(e), messenger('action_required'))
                 
                 # Ask the user if they want to open settings
                 from tkinter import messagebox
-                prompt = f"Last.fm API Error: {e}\n\n{messenger('menu_settings')} sayfasına gitmek ister misiniz?"
-                if messagebox.askyesno(messenger('err'), prompt):
+                if messagebox.askyesno(messenger('err'), messenger('api_error_prompt', str(e))):
                     # Call open_settings from the tray manager
                     self.tray.open_settings(None, None)
                 
