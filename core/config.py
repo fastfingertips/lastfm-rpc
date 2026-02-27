@@ -6,6 +6,16 @@ from utils.reader import load_yaml_file, load_translations
 
 logger = logging.getLogger('config')
 
+from dataclasses import dataclass, asdict
+
+@dataclass
+class AppConfig:
+    """Dataclass to hold application configuration with type safety."""
+    username: str = ""
+    api_key: str = ""
+    api_secret: str = ""
+    app_lang: str = "en-US"
+
 class ConfigManager:
     """
     Manages application configuration, including loading, saving, and 
@@ -16,26 +26,34 @@ class ConfigManager:
         self.config_path = config_path
         self.translations_dir = translations_dir
         
-        # Internal state
-        self.username: str = ""
-        self.api_key: str = ""
-        self.api_secret: str = ""
-        self.app_lang: str = "en-US"
+        # Internal state using a dataclass
+        self._data = AppConfig()
         self.translations: Dict[str, str] = {}
         
         # Initial load
         self.load()
 
+    @property
+    def username(self) -> str: return self._data.username
+    @property
+    def api_key(self) -> str: return self._data.api_key
+    @property
+    def api_secret(self) -> str: return self._data.api_secret
+    @property
+    def app_lang(self) -> str: return self._data.app_lang
+
     def load(self):
         """Loads configuration from file and initializes translations."""
         try:
-            config = load_yaml_file(self.config_path)
+            config_dict = load_yaml_file(self.config_path)
             
-            # Extract values with defaults
-            self.username = config.get('USER', {}).get('USERNAME', "")
-            self.api_key = config.get('API', {}).get('KEY', "")
-            self.api_secret = config.get('API', {}).get('SECRET', "")
-            self.app_lang = config.get('APP', {}).get('LANG', 'en-US')
+            # Populate dataclass
+            self._data = AppConfig(
+                username=config_dict.get('USER', {}).get('USERNAME', ""),
+                api_key=config_dict.get('API', {}).get('KEY', ""),
+                api_secret=config_dict.get('API', {}).get('SECRET', ""),
+                app_lang=config_dict.get('APP', {}).get('LANG', 'en-US')
+            )
             
             # Load translations based on language
             self.translations = load_translations(self.app_lang, self.translations_dir)
@@ -43,28 +61,24 @@ class ConfigManager:
             logger.info(f"Configuration and translations ({self.app_lang}) loaded successfully.")
         except Exception as e:
             logger.error(f"Failed to load configuration: {e}")
-            # Fallback to defaults if needed, though load_yaml_file might sys.exit
             
     def save(self, username: str, api_key: str, api_secret: str, lang: str) -> bool:
         """
         Saves new configuration values to the YAML file.
         Returns True if successful, False otherwise.
         """
+        # Update local dataclass first
+        self._data = AppConfig(username, api_key, api_secret, lang)
+        
         new_config = {
-            'USER': {'USERNAME': username},
-            'API': {'KEY': api_key, 'SECRET': api_secret},
-            'APP': {'LANG': lang}
+            'USER': {'USERNAME': self.username},
+            'API': {'KEY': self.api_key, 'SECRET': self.api_secret},
+            'APP': {'LANG': self.app_lang}
         }
         
         try:
             with open(self.config_path, "w", encoding="utf-8") as f:
                 yaml.dump(new_config, f, default_flow_style=False, allow_unicode=True)
-            
-            # Update local state after saving
-            self.username = username
-            self.api_key = api_key
-            self.api_secret = api_secret
-            self.app_lang = lang
             
             # Reload translations in case language changed
             self.translations = load_translations(self.app_lang, self.translations_dir)
