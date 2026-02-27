@@ -279,11 +279,11 @@ class DiscordRPC:
         if self.show_username: 
             stats.append(f"@{user_state.username}")
         if self.show_scrobbles:
-            stats.append(messenger('rpc_total_scrobbles', user_state.total_scrobbles))
+            stats.append(messenger('rpc_scrobbles', user_state.total_scrobbles))
         if self.show_artists:
-            stats.append(messenger('rpc_total_artists', user_state.total_artists))
+            stats.append(messenger('rpc_artists', user_state.total_artists))
         if self.show_loved:
-            stats.append(messenger('rpc_total_loved', user_state.total_loved_tracks))
+            stats.append(messenger('rpc_loved_tracks', user_state.total_loved_tracks))
 
         small_text = ", ".join(stats) if stats else None
         return small_image, small_text
