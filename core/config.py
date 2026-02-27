@@ -158,6 +158,7 @@ class ConfigManager:
             logger.error(f"Could not load translations for language: {lang} - {e}")
             return {}
 
+
 # ── Global Config Instance ───────────────────────────────
 config = ConfigManager(translations_dir="translations")
 config.load()
