@@ -1,9 +1,10 @@
 import pylast
 from loguru import logger
 
-import constants.project as project
 from api.lastfm.models import TrackInfo
+from core.config import config
 from core.exceptions import APIKeyError
+from utils.string_utils import messenger
 from utils.time_utils import ms_to_seconds
 
 logger = logger.bind(name="lastfm")
@@ -11,13 +12,16 @@ logger = logger.bind(name="lastfm")
 
 class User:
     def __init__(self, username, cooldown=None):
-        from constants.project import API_KEY, API_SECRET, DEFAULT_COOLDOWN
+        from constants.project import DEFAULT_COOLDOWN
 
         self.username = username
         self.cooldown = cooldown if cooldown is not None else DEFAULT_COOLDOWN
 
         # Initialize network with current keys
-        self.network = pylast.LastFMNetwork(API_KEY, API_SECRET)
+        self.network = pylast.LastFMNetwork(
+            config.api_key,
+            config.api_secret,
+        )
         self.lastfm_user = self.network.get_user(username)
 
         self.last_track = None
@@ -32,11 +36,11 @@ class User:
                 logger.critical(f"FATAL API ERROR: {error_str}")
                 raise APIKeyError(error_str) from e
 
-            logger.error(f"{project.TRANSLATIONS['pylast_ws_error'].format(self.cooldown)} | Details: {e}")
+            logger.error(f"{messenger('pylast_ws_error', self.cooldown)} | Details: {e}")
         except pylast.NetworkError:
-            logger.error(project.TRANSLATIONS["pylast_network_error"])
+            logger.error(messenger("pylast_network_error"))
         except pylast.MalformedResponseError:
-            logger.error(project.TRANSLATIONS["pylast_malformed_response_error"])
+            logger.error(messenger("pylast_malformed_response_error"))
         return None
 
     def _get_track_info(self, current_track) -> TrackInfo:
@@ -56,7 +60,7 @@ class User:
         except pylast.WSError as e:
             logger.error(f"pylast.WSError: {e}")
         except pylast.NetworkError:
-            logger.error(project.TRANSLATIONS["pylast_network_error"])
+            logger.error(messenger("pylast_network_error"))
 
         if info.artwork_url:
             logger.debug(f"Fetched artwork URL: {info.artwork_url}")
@@ -79,5 +83,5 @@ class User:
             return current_track, info
         self.last_track = None
         self.last_track_info = None
-        logger.debug(project.TRANSLATIONS["no_song"].format(self.cooldown))
+        logger.debug(messenger("no_song", self.cooldown))
         return None, None

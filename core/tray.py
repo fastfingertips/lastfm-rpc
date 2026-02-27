@@ -6,6 +6,7 @@ from PIL import Image
 from pystray import Icon, Menu, MenuItem
 
 import constants.project as project
+from core.config import config
 from utils.string_utils import messenger
 from utils.time_utils import format_time
 from utils.ui_utils import ask_config_gui, show_error
@@ -57,7 +58,7 @@ class TrayManager:
 
         return Menu(
             *dynamic_items,
-            MenuItem(messenger("user", project.USERNAME), self.open_profile),
+            MenuItem(messenger("user", config.username), self.open_profile),
             MenuItem(lambda item: self.app.current_track_name, None, enabled=False),
             # Display stats item
             MenuItem(self._get_dynamic_artist_stats, None, enabled=False),
@@ -164,7 +165,7 @@ class TrayManager:
 
     def open_profile(self, icon, item):
         """Opens the user's Last.fm profile in the default browser."""
-        url = project.LASTFM_USER_URL.format(username=project.USERNAME)
+        url = project.LASTFM_USER_URL.format(username=config.username)
         open_url(url)
         logger.info(f"Opened Last.fm profile: {url}")
 
@@ -181,18 +182,18 @@ class TrayManager:
         logger.info("Opening settings GUI.")
 
         # Access constants directly from module to get latest reloaded values
-        current_vals = (project.USERNAME, project.API_KEY, project.API_SECRET, project.APP_LANG)
+        current_vals = config.get_all_config()
 
         def save_and_reload(new_config):
             # Extract values from new_config dict
-            u = new_config.get("USER", {}).get("USERNAME", project.USERNAME)
-            k = new_config.get("API", {}).get("KEY", project.API_KEY)
-            s = new_config.get("API", {}).get("SECRET", project.API_SECRET)
-            lang = new_config.get("APP", {}).get("LANG", project.APP_LANG)
+            u = new_config.get("USER", {}).get("USERNAME", config.username)
+            k = new_config.get("API", {}).get("KEY", config.api_key)
+            s = new_config.get("API", {}).get("SECRET", config.api_secret)
+            lang = new_config.get("APP", {}).get("LANG", config.app_lang)
 
-            if project.config_manager.save(u, k, s, lang):
-                # Sync global variables in project.py
-                project.reload_constants()
+            if config.save(u, k, s, lang):
+                # Reload config to update all properties
+                config.load()
 
                 # Refresh UI and track
                 self.app.current_track_name = messenger("no_track")

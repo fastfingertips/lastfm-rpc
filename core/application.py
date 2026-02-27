@@ -9,6 +9,7 @@ import constants.project as project
 from api.discord.rpc import DiscordRPC
 from api.lastfm.models import TrackInfo
 from api.lastfm.user.tracking import User
+from core.config import config
 from core.tray import TrayManager
 from utils.string_utils import messenger
 from utils.ui_utils import ask_yes_no, show_info
@@ -112,7 +113,7 @@ class App:
             logger.debug(f"Polling: {formatted_track}")
 
         # 2. HEAVY DATA UPDATE
-        self.rpc.update_status(current_track, info, project.USERNAME, force=is_forced_update)
+        self.rpc.update_status(current_track, info, config.username, force=is_forced_update)
 
         # 3. Refresh menu if changed
         if has_track_changed or has_conn_changed:
@@ -135,13 +136,13 @@ class App:
 
         from core.exceptions import APIKeyError
 
-        user = User(project.USERNAME)
+        user = User(config.username)
 
         while True:
             # Check if config was reloaded via GUI
             if self.config_needs_reload:
-                logger.info(f"Applying new configuration for user: {project.USERNAME}")
-                user = User(project.USERNAME)
+                logger.info(f"Applying new configuration for user: {config.username}")
+                user = User(config.username)
                 self.config_needs_reload = False
 
             # Check if this iteration was triggered by an event (settings change)
