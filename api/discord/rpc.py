@@ -5,6 +5,7 @@ from pypresence.types import ActivityType, StatusDisplayType
 
 from api.discord.formatter import format_rpc_text
 from api.lastfm.models import TrackInfo, UserState
+from core.config import config
 from constants.project import (
     CLIENT_ID,
     DAY_MODE_COVER,
@@ -36,22 +37,7 @@ class DiscordRPC:
         self.last_track = None
         self.connection_time = None
         self.current_artist = None
-        self.connection_time = None
-        self.current_artist = None
         self.artist_scrobbles = 0
-
-        # Display Options
-        self.show_scrobbles = True
-        self.show_artists = True
-        self.show_loved = True
-        self.show_small_image = True  # Main toggle for small image area
-        self.use_custom_profile_image = True  # Toggle between user avatar and default icon
-        self.use_default_icon = False  # Toggle for default avatar fallback
-        self.use_lastfm_icon = False  # Toggle for Last.fm icon fallback
-        self.show_username = True
-
-        self.show_artist_scrobbles_large = True
-        self.focus_artist = True
 
         self.show_artist_scrobbles_large = True
         self.focus_artist = True
@@ -128,7 +114,7 @@ class DiscordRPC:
 
         if artist_count:
             # if the artist is in the library
-            if self.show_artist_scrobbles_large:
+            if config.rpc.show_artist_scrobbles_large:
                 track_count = library_data["track_count"]
                 msg = (
                     messenger("rpc_scrobbles_total", [artist_count, track_count])
@@ -199,7 +185,7 @@ class DiscordRPC:
         artwork_asset, large_text = self._prepare_artwork_and_large_text(info.artwork_url, info.album, lib_data)
 
         # Logic for Discord Display
-        display_type = StatusDisplayType.STATE if self.focus_artist else StatusDisplayType.DETAILS
+        display_type = StatusDisplayType.STATE if config.rpc.focus_artist else StatusDisplayType.DETAILS
 
         # Format state line
         has_duration = info.duration > 0
@@ -224,29 +210,29 @@ class DiscordRPC:
 
     def _prepare_small_image_details(self, user_state: UserState):
         """Prepares the small image (avatar/badge) and its hover text."""
-        if not self.show_small_image:
+        if not config.rpc.show_small_image:
             return None, None
 
         # Assets
         small_image = None
-        if self.use_custom_profile_image and user_state.avatar_url:
+        if config.rpc.use_custom_profile_image and user_state.avatar_url:
             small_image = user_state.avatar_url
-        elif self.use_default_icon:
+        elif config.rpc.use_default_icon:
             small_image = DEFAULT_AVATAR_URL
-        elif self.use_lastfm_icon:
+        elif config.rpc.use_lastfm_icon:
             small_image = LASTFM_ICON_URL
 
         # Hover Text
         stats_lines = {}
-        if self.show_username:
+        if config.rpc.show_username:
             display = user_state.display_name or user_state.username
             stats_lines["username"] = f"{display} (@{user_state.username})"
 
-        if self.show_scrobbles:
+        if config.rpc.show_scrobbles:
             stats_lines["scrobbles"] = messenger("rpc_scrobbles", user_state.total_scrobbles)
-        if self.show_artists:
+        if config.rpc.show_artists:
             stats_lines["artists"] = messenger("rpc_artists", user_state.total_artists)
-        if self.show_loved:
+        if config.rpc.show_loved:
             stats_lines["loved"] = messenger("rpc_loved_tracks", user_state.total_loved_tracks)
 
         small_text = format_rpc_text(stats_lines)

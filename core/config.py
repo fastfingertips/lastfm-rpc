@@ -28,12 +28,28 @@ class AppSettingsConfig(BaseModel):
     lang: str = Field(default="en-US", alias="LANG")
 
 
+class RpcDisplayConfig(BaseModel):
+    """RPC display preferences."""
+
+    show_scrobbles: bool = Field(default=True, alias="SHOW_SCROBBLES")
+    show_artists: bool = Field(default=True, alias="SHOW_ARTISTS")
+    show_loved: bool = Field(default=True, alias="SHOW_LOVED")
+    show_small_image: bool = Field(default=True, alias="SHOW_SMALL_IMAGE")
+    use_custom_profile_image: bool = Field(default=True, alias="USE_CUSTOM_PROFILE_IMAGE")
+    use_default_icon: bool = Field(default=False, alias="USE_DEFAULT_ICON")
+    use_lastfm_icon: bool = Field(default=False, alias="USE_LASTFM_ICON")
+    show_username: bool = Field(default=True, alias="SHOW_USERNAME")
+    show_artist_scrobbles_large: bool = Field(default=True, alias="SHOW_ARTIST_SCROBBLES_LARGE")
+    focus_artist: bool = Field(default=True, alias="FOCUS_ARTIST")
+
+
 class AppConfig(BaseModel):
     """Root configuration model representing config.yaml structure."""
 
     user: UserConfig = Field(default_factory=UserConfig, alias="USER")
     api: ApiConfig = Field(default_factory=ApiConfig, alias="API")
     app: AppSettingsConfig = Field(default_factory=AppSettingsConfig, alias="APP")
+    rpc: RpcDisplayConfig = Field(default_factory=RpcDisplayConfig, alias="RPC")
 
     model_config = {"populate_by_name": True}
 
@@ -91,6 +107,10 @@ class ConfigManager:
     def app_lang(self) -> str:
         return self._config.app_lang
 
+    @property
+    def rpc(self) -> RpcDisplayConfig:
+        return self._config.rpc
+
     def load(self):
         """Loads configuration from YAML file and initializes translations."""
         try:
@@ -110,22 +130,21 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Failed to load configuration: {e}")
 
-    def save(self, username: str, api_key: str, api_secret: str, lang: str) -> bool:
-        """Saves new configuration values to the YAML file."""
-        self._config = AppConfig(
-            USER=UserConfig(USERNAME=username),
-            API=ApiConfig(KEY=api_key, SECRET=api_secret),
-            APP=AppSettingsConfig(LANG=lang),
-        )
-
-        # Convert to YAML-friendly dict using aliases
-        config_dict = {
-            "USER": {"USERNAME": self.username},
-            "API": {"KEY": self.api_key, "SECRET": self.api_secret},
-            "APP": {"LANG": self.app_lang},
-        }
+    def save(self, username: str = None, api_key: str = None, api_secret: str = None, lang: str = None) -> bool:
+        """Saves current configuration to the YAML file."""
+        if username is not None:
+            self._config.user.username = username
+        if api_key is not None:
+            self._config.api.key = api_key
+        if api_secret is not None:
+            self._config.api.secret = api_secret
+        if lang is not None:
+            self._config.app.lang = lang
 
         try:
+            # Use Pydantic's model_dump with by_alias=True to get the YAML-friendly structure
+            config_dict = self._config.model_dump(by_alias=True)
+
             with open(self.config_path, "w", encoding="utf-8") as f:
                 yaml.dump(config_dict, f, default_flow_style=False, allow_unicode=True)
 

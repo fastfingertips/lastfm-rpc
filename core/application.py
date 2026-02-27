@@ -67,8 +67,9 @@ class App:
 
     def toggle_display_option(self, option):
         """Toggles a display option for the Discord RPC."""
-        current = getattr(self.rpc, option)
-        setattr(self.rpc, option, not current)
+        current = getattr(config.rpc, option)
+        setattr(config.rpc, option, not current)
+        config.save()
         self.tray.refresh()
         logger.info(f"Toggled option '{option}' to {not current}. Triggering update.")
         # Trigger immediate update
@@ -76,24 +77,25 @@ class App:
 
     def set_small_image_option(self, option):
         """Sets the active small image source (Radio Button behavior)."""
-        # Define mutually exclusive options
         options = ["use_custom_profile_image", "use_default_icon", "use_lastfm_icon"]
         if option not in options:
             return
 
         # Disable all others, enable the selected one
         for opt in options:
-            setattr(self.rpc, opt, opt == option)
+            setattr(config.rpc, opt, opt == option)
+        
+        config.save()
         self.tray.refresh()
         logger.info(f"Set small image source to '{option}'. Triggering update.")
         self.update_event.set()
 
     def set_large_image_option(self, show_scrobbles):
         """Sets the mode for large image text (Radio Button behavior)."""
-        # If show_scrobbles is True, we show scrobbles. If False, we fall back to Album Name.
-        if self.rpc.show_artist_scrobbles_large == show_scrobbles:
+        if config.rpc.show_artist_scrobbles_large == show_scrobbles:
             return
-        self.rpc.show_artist_scrobbles_large = show_scrobbles
+        config.rpc.show_artist_scrobbles_large = show_scrobbles
+        config.save()
         self.tray.refresh()
         logger.info(f"Set large image mode to {'Scrobbles' if show_scrobbles else 'Album Name'}. Triggering update.")
         self.update_event.set()
