@@ -24,6 +24,7 @@ def build():
 
     # 2. Prepare paths
     main_script = "main.py"
+    app_name = "lastfm-rpc"
     icon_path = os.path.join("assets", "last_fm.png")
 
     # 3. Construct Nuitka command
@@ -47,6 +48,7 @@ def build():
         "--include-data-dir=translations=translations",
         "--windows-console-mode=disable",
         f"--windows-icon-from-ico={icon_path}",
+        f"--output-filename={app_name}",
         f"--output-dir={output_dir}",
         "--company-name=FastFingertips",
         "--product-name=Last.fm RPC",
@@ -63,14 +65,22 @@ def build():
     try:
         # We use subprocess.run without catching output to see Nuitka's progress
         subprocess.run(cmd, check=True)
+
+        # Nuitka names the dist folder after the script (main.dist), rename to app name
+        nuitka_dist = os.path.join(output_dir, f"{os.path.splitext(main_script)[0]}.dist")
+        final_dist = os.path.join(output_dir, f"{app_name}.dist")
+        if os.path.exists(nuitka_dist) and nuitka_dist != final_dist:
+            if os.path.exists(final_dist):
+                shutil.rmtree(final_dist)
+            os.rename(nuitka_dist, final_dist)
+            print(f"Renamed dist folder: {nuitka_dist} -> {final_dist}")
+
         if os.path.exists("config.yaml"):
-            shutil.copy(
-                "config.yaml", os.path.join(output_dir, f"{os.path.splitext(main_script)[0]}.dist", "config.yaml")
-            )
+            shutil.copy("config.yaml", os.path.join(final_dist, "config.yaml"))
             print("Copied config.yaml to dist folder")
 
-        print("\nBuild finished successfully!")
-        print(f"Location: {os.path.abspath(output_dir)}")
+        print(f"\nBuild finished successfully!")
+        print(f"Executable: {os.path.join(final_dist, f'{app_name}.exe')}")
     except subprocess.CalledProcessError as e:
         print(f"\nBuild failed with error: {e}")
         sys.exit(1)
