@@ -3,45 +3,62 @@ from loguru import logger
 
 from api.lastfm.models import TrackInfo
 from core.config import config
-from core.exceptions import APIKeyError
+from core.exceptions import APIKeyError, LastFMError
 from utils.clock import ms_to_seconds
 from utils.i18n import messenger
 
 logger = logger.bind(name="lastfm")
 
 
-class User:
+class LastFMTracker:
     def __init__(self, username, cooldown=None):
         from constants.project import DEFAULT_COOLDOWN
 
         self.username = username
         self.cooldown = cooldown if cooldown is not None else DEFAULT_COOLDOWN
+        self.network = None
+        self.lastfm_user = None
+        self.last_track = None
+        self.last_track_info = None
 
-        # Initialize network with current keys
+        self.refresh_network(username)
+
+    def refresh_network(self, username):
+        """Initializes or updates the Last.fm network connection."""
+        self.username = username
         self.network = pylast.LastFMNetwork(
             config.api_key,
             config.api_secret,
         )
         self.lastfm_user = self.network.get_user(username)
+        logger.debug(f"LastFMTracker network refreshed for user: {username}")
 
         self.last_track = None
         self.last_track_info = None
 
-    def _get_current_track(self):
-        try:
-            return self.lastfm_user.get_now_playing()
-        except pylast.WSError as e:
-            error_str = str(e)
+    def _handle_pylast_error(self, e, context=""):
+        """Centralized handler for pylast exceptions."""
+        error_str = str(e)
+        if isinstance(e, pylast.WSError):
             if "Invalid API key" in error_str or "API Key Suspended" in error_str:
                 logger.critical(f"FATAL API ERROR: {error_str}")
                 raise APIKeyError(error_str) from e
+            logger.error(f"Last.fm WS Error ({context}): {e}")
+            raise LastFMError(f"Last.fm API error: {e}") from e
 
-            logger.error(f"{messenger('pylast_ws_error', self.cooldown)} | Details: {e}")
-        except pylast.NetworkError:
-            logger.error(messenger("pylast_network_error"))
-        except pylast.MalformedResponseError:
-            logger.error(messenger("pylast_malformed_response_error"))
-        return None
+        if isinstance(e, pylast.NetworkError):
+            logger.warning(f"Network error in {context}: {e}")
+            # We don't necessarily want to raise here, maybe just log and return None
+            return
+
+        logger.error(f"Unexpected error in {context}: {e}")
+        return
+
+    def _get_current_track(self):
+        try:
+            return self.lastfm_user.get_now_playing()
+        except (pylast.WSError, pylast.NetworkError, pylast.MalformedResponseError) as e:
+            return self._handle_pylast_error(e, "get_now_playing")
 
     def _get_track_info(self, current_track) -> TrackInfo:
         info = TrackInfo()
@@ -57,10 +74,8 @@ class User:
             # pylast returns duration in milliseconds, convert to seconds
             info.duration = ms_to_seconds(current_track.get_duration())
             # Note: We could also check is_loved here if needed
-        except pylast.WSError as e:
-            logger.error(f"pylast.WSError: {e}")
-        except pylast.NetworkError:
-            logger.error(messenger("pylast_network_error"))
+        except (pylast.WSError, pylast.NetworkError, pylast.MalformedResponseError) as e:
+            self._handle_pylast_error(e, "get_track_info")
 
         if info.artwork_url:
             logger.debug(f"Fetched artwork URL: {info.artwork_url}")
