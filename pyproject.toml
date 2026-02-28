@@ -6,7 +6,6 @@ authors = [
     { name = "fastfingertips", email = "fastfingertips@gmail.com" }
 ]
 dependencies = [
-    "beautifulsoup4>=4.14.3",
     "loguru>=0.7.3",
     "packaging>=26.0",
     "pydantic>=2.12.5",
@@ -14,8 +13,10 @@ dependencies = [
     "pylast>=7.0.2",
     "pypresence>=4.6.1",
     "pystray>=0.19.5",
+    "customtkinter>=5.2.2",
     "pyyaml>=6.0.3",
-    "requests>=2.32.5",
+    "scrapling[all]>=0.4.1",
+    "curl-cffi>=0.14.0",
 ]
 readme = "README.md"
 requires-python = ">=3.11"
