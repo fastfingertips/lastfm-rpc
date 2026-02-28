@@ -24,6 +24,7 @@ MAX_RETRIES = 10
 UPDATE_INTERVAL = 2
 TRACK_CHECK_INTERVAL = 5
 DEFAULT_COOLDOWN = 6
+RPC_SYNC_OFFSET = 12  # Seconds to subtract from start time to compensate for Last.fm API lag
 
 # ── Remote Assets ────────────────────────────────────────
 DEFAULT_AVATAR_ID = "818148bf682d429dc215c1705eb27b98"
@@ -37,6 +38,7 @@ LASTFM_BASE_URL = "https://www.last.fm"
 LASTFM_USER_URL = f"{LASTFM_BASE_URL}/user/{{username}}"
 LASTFM_LIBRARY_URL = f"{LASTFM_USER_URL}/library"
 LASTFM_TRACK_URL_TEMPLATE = f"{LASTFM_USER_URL}/library/music/{{artist}}/_/{{title}}"
+LASTFM_TRACK_GLOBAL_URL = f"{LASTFM_BASE_URL}/music/{{artist}}/_/{{title}}"
 
 # ── External Search Templates ────────────────────────────
 YT_MUSIC_SEARCH_TEMPLATE = "https://music.youtube.com/search?q={query}"

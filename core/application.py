@@ -1,18 +1,15 @@
-import asyncio
 import os
 import sys
 import threading
+import winreg
 
 from loguru import logger
 
 import constants.project as project
 from api.discord.rpc import DiscordRPC
-from api.lastfm.models import TrackInfo, UserState
-from api.lastfm.user.tracking import User
-from api.lastfm.user.library import get_library_data
-from api.lastfm.user.profile import get_user_data
 from core.config import config
 from core.tray import TrayManager
+from services.sync_service import SyncService
 from utils.dialogs import ask_yes_no, show_info
 from utils.i18n import messenger
 from utils.urls import open_url
@@ -31,23 +28,27 @@ class App:
         # Initialize flags and states
         self.config_needs_reload = False
         self.latest_update = (False, None, None)
-        self.cached_track_data = None
-        self.cached_user_data = None
-        self.cached_library_data = None
-        self.last_fetched_track = None
         self.update_event = threading.Event()
+        self.exit_event = threading.Event()
 
         # Initialize UI Manager
         self.tray = TrayManager(self)
 
-        self.loop = asyncio.new_event_loop()
-        self.rpc_thread = threading.Thread(target=self.run_rpc, args=(self.loop,))
+        # Initialize Sync Service
+        self.sync_service = SyncService(self)
+
+        self.rpc_thread = threading.Thread(target=self.sync_service.start)
         self.rpc_thread.daemon = True
 
     def exit_app(self, icon=None, item=None):
         """Cleanly exits the application."""
-        logger.info("Exiting application.")
-        self.rpc.disable()
+        logger.info("Exiting application...")
+        self.exit_event.set()
+        from contextlib import suppress
+
+        # Give the thread a moment to close connections
+        with suppress(Exception):
+            self.rpc_thread.join(timeout=2.0)
         self.tray.stop()
         os._exit(0)
 
@@ -65,179 +66,101 @@ class App:
 
         logger.info(f"Logging level set to: {new_level}")
 
+    async def handle_api_error(self, e):
+        """Processes a fatal API error (e.g. wrong key) by updating UI and notifying user."""
+        logger.critical(f"Stopping RPC loop due to API Key issue: {e}")
+
+        # Update UI state
+        self.current_track_name = messenger("api_error_status")
+        self._rpc_connected = False
+        await self.rpc.disable()
+        self.tray.update_title(self.current_track_name)
+        self.tray.refresh()
+
+        # Show tray notification
+        self.tray.notify(str(e), messenger("action_required"))
+
+        # Ask the user if they want to open settings
+        from utils.dialogs import ask_yes_no
+
+        if ask_yes_no(messenger("err"), messenger("api_error_prompt", str(e))):
+            self.tray.open_settings(None, None)
+
+    def _finalize_config_change(self, log_msg):
+        """Helper to save config, refresh UI, and trigger a background sync update."""
+        config.save()
+        self.tray.refresh()
+        if log_msg:
+            logger.info(log_msg)
+        # Trigger immediate update in the background thread
+        self.update_event.set()
+
     def toggle_display_option(self, option):
         """Toggles a display option for the Discord RPC."""
         current = getattr(config.rpc, option)
         setattr(config.rpc, option, not current)
-        config.save()
-        self.tray.refresh()
-        logger.info(f"Toggled option '{option}' to {not current}. Triggering update.")
-        # Trigger immediate update
-        self.update_event.set()
+        self._finalize_config_change(f"Toggled option '{option}' to {not current}.")
 
     def set_small_image_option(self, option):
         """Sets the active small image source (Radio Button behavior)."""
-        options = ["use_custom_profile_image", "use_default_icon", "use_lastfm_icon"]
+        options = ["use_custom_profile_image", "use_default_icon", "use_lastfm_icon", "use_custom_small_image"]
         if option not in options:
             return
 
         # Disable all others, enable the selected one
         for opt in options:
             setattr(config.rpc, opt, opt == option)
-        
-        config.save()
-        self.tray.refresh()
-        logger.info(f"Set small image source to '{option}'. Triggering update.")
-        self.update_event.set()
 
-    def set_large_image_option(self, show_scrobbles):
-        """Sets the mode for large image text (Radio Button behavior)."""
-        if config.rpc.show_artist_scrobbles_large == show_scrobbles:
-            return
-        config.rpc.show_artist_scrobbles_large = show_scrobbles
-        config.save()
-        self.tray.refresh()
-        logger.info(f"Set large image mode to {'Scrobbles' if show_scrobbles else 'Album Name'}. Triggering update.")
-        self.update_event.set()
+        self._finalize_config_change(f"Set small image source to '{option}'.")
 
-    def _perform_rpc_cycle(self, user, is_forced_update):
+    def set_large_text_mode(self, mode):
+        """Sets the mode for large image text (Radio Button behavior).
+        Modes: 'scrobbles', 'album', 'off'
         """
-        Executes a single cycle of the RPC update process.
-        Returns the wait time for the next cycle.
-        """
-        # If forced update and we have cached data, reuse it without polling Last.fm
-        if is_forced_update and self.cached_track_data:
-            current_track, data = self.cached_track_data
+        if mode == "scrobbles":
+            config.rpc.show_large_text = True
+            config.rpc.show_artist_scrobbles_large = True
+        elif mode == "album":
+            config.rpc.show_large_text = True
+            config.rpc.show_artist_scrobbles_large = False
+        elif mode == "off":
+            config.rpc.show_large_text = False
+
+        self._finalize_config_change(f"Set large text mode to '{mode}'.")
+
+    def toggle_auto_start(self, icon=None, item=None):
+        """Toggles Windows auto-start registry key."""
+        current = config.get_all_config().app.auto_start
+        new_state = not current
+
+        app_name = project.APP_NAME
+        if getattr(sys, "frozen", False):
+            # Running as bundled executable (e.g. PyInstaller)
+            app_path = f'"{sys.executable}"'
         else:
-            # Normal poll cycle
-            current_track, data = user.now_playing()
-            if data:
-                self.cached_track_data = (current_track, data)
+            # Running as script
+            app_path = f'"{sys.executable}" "{os.path.abspath(sys.argv[0])}"'
 
-        if data:
-            # Fetch additional metadata (User stats, library scrobbles)
-            user_state, lib_data = self._get_metadata_with_cache(current_track, data.artist, data.title)
-            if user_state and lib_data:
-                self._handle_active_track(current_track, data, user_state, lib_data, is_forced_update)
-            return project.TRACK_CHECK_INTERVAL
+        key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
-        self._handle_no_track()
-        self.cached_track_data = None
-        return project.UPDATE_INTERVAL
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_SET_VALUE | winreg.KEY_QUERY_VALUE)
+            if new_state:
+                winreg.SetValueEx(key, app_name, 0, winreg.REG_SZ, app_path)
+                logger.info(f"Auto-start enabled: {app_path}")
+            else:
+                try:
+                    winreg.DeleteValue(key, app_name)
+                    logger.info("Auto-start disabled.")
+                except FileNotFoundError:
+                    pass
+            winreg.CloseKey(key)
 
-    def _get_metadata_with_cache(self, track_obj, artist, title) -> tuple[UserState | None, dict | None]:
-        """Fetch user and library data with caching logic."""
-        if self.last_fetched_track == track_obj and self.cached_user_data and self.cached_library_data:
-            logger.debug(f"Using cached Last.fm stats for {track_obj}")
-            return self.cached_user_data, self.cached_library_data
-
-        user_state = get_user_data(config.username)
-        if not user_state:
-            logger.error(f"User data not found for {config.username}")
-            return None, None
-
-        library_data = get_library_data(config.username, artist, title)
-
-        # Update cache
-        self.last_fetched_track = track_obj
-        self.cached_user_data = user_state
-        self.cached_library_data = library_data
-
-        return user_state, library_data
-
-    def _handle_active_track(self, current_track, info: TrackInfo, user_state: UserState, lib_data: dict, is_forced_update=False):
-        """Handle the case where a track is playing."""
-        formatted_track = f"{info.artist} - {info.title}"
-        new_track_display = messenger("now_playing", formatted_track)
-
-        # 1. IMMEDIATE UI UPDATE
-        # Note: self.rpc.enable() now handled at startup or via auto-reconnect
-
-        has_track_changed = self.current_track_name != new_track_display
-        has_conn_changed = self._rpc_connected != self.rpc.is_connected
-
-        if has_track_changed or has_conn_changed:
-            self.current_track_name = new_track_display
-            self._rpc_connected = self.rpc.is_connected
-            logger.info(f"Status: {self.current_track_name} | Discord: {self._rpc_connected}")
-            self.tray.update_title(new_track_display)
-        else:
-            logger.debug(f"Polling: {formatted_track}")
-
-        # 2. HEAVY DATA UPDATE
-        self.rpc.update_status(
-            current_track, info, config.username, user_state, lib_data, force=is_forced_update
-        )
-
-        # 3. Refresh menu if changed
-        if has_track_changed or has_conn_changed:
-            self.tray.refresh()
-
-    def _handle_no_track(self):
-        """Handle the case where no track is playing."""
-        if self.current_track_name != messenger("no_track") or self._rpc_connected != self.rpc.is_connected:
-            self.current_track_name = messenger("no_track")
-            self._rpc_connected = self.rpc.is_connected
-            logger.info(f"Tray Update: No track detected | Discord: {self._rpc_connected}")
-            self.tray.update_title(self.current_track_name)
-        self.rpc.clear_status()
-        self.tray.refresh()
-
-    def run_rpc(self, loop):
-        """Runs the RPC updater in a loop."""
-        logger.info(messenger("starting_rpc"))
-        asyncio.set_event_loop(loop)
-        
-        # Connect to Discord once at startup
-        self.rpc.enable()
-
-        from core.exceptions import APIKeyError
-
-        user = User(config.username)
-
-        while True:
-            # Check if config was reloaded via GUI
-            if self.config_needs_reload:
-                logger.info(f"Applying new configuration for user: {config.username}")
-                user = User(config.username)
-                self.config_needs_reload = False
-
-            # Check if this iteration was triggered by an event (settings change)
-            is_forced_update = self.update_event.is_set()
-            self.update_event.clear()
-
-            try:
-                wait_time = self._perform_rpc_cycle(user, is_forced_update)
-                # Wait for next cycle or till an event is set
-                if self.update_event.wait(wait_time):
-                    continue
-            except APIKeyError as e:
-                logger.critical(f"Stopping RPC loop due to API Key issue: {e}")
-
-                # Update UI state
-                self.current_track_name = messenger("api_error_status")
-                self._rpc_connected = False
-                self.rpc.disable()
-                self.tray.update_title(self.current_track_name)
-                self.tray.refresh()
-
-                # Show tray notification first (ensure icon is seen)
-                self.tray.notify(str(e), messenger("action_required"))
-
-                # Ask the user if they want to open settings
-                if ask_yes_no(messenger("err"), messenger("api_error_prompt", str(e))):
-                    # Call open_settings from the tray manager
-                    self.tray.open_settings(None, None)
-
-                # Stop the loop and wait for event (like settings save) to restart or stay idle
-                logger.info("RPC loop is now idle. Waiting for configuration change...")
-                self.update_event.wait()
-                continue
-            except Exception as e:
-                logger.error(f"Unexpected error in RPC loop: {e}", exc_info=True)
-                # Small cooldown after failure
-                self.update_event.wait(5)
-
+            # Save and refresh
+            config.get_all_config().app.auto_start = new_state
+            self._finalize_config_change(f"Auto-start toggled to {new_state}")
+        except Exception as e:
+            logger.error(f"Failed to toggle auto-start: {e}")
 
     def check_updates_manual(self, icon, item):
         """Check for updates manually in a non-blocking way."""

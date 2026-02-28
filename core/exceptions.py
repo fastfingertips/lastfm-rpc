@@ -15,3 +15,11 @@ class ConfigurationError(LastFMRPCError):
 
 class ConnectionError(LastFMRPCError):
     """Raised when a connection to an external service fails."""
+
+
+class LastFMError(LastFMRPCError):
+    """Raised when a Last.fm specific error occurs (e.g., user not found)."""
+
+
+class DiscordError(LastFMRPCError):
+    """Raised when a Discord RPC specific error occurs."""

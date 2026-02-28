@@ -1,4 +1,3 @@
-import os
 import sys
 
 from loguru import logger
@@ -10,8 +9,8 @@ from core.config import config
 from utils.clock import format_time
 from utils.dialogs import ask_config_gui, show_error
 from utils.i18n import messenger
+from utils.paths import get_asset_path
 from utils.urls import open_url
-from utils.paths import get_project_root, get_asset_path
 
 logger = logger.bind(name="app")
 
@@ -41,96 +40,153 @@ class TrayManager:
         """Creates and returns the tray menu with dynamic items."""
         dynamic_items = []
 
-        # Add Update Item at the top if available
+        # ── 1. Update Notification ──────────────────────────────
         is_available, ver_name, url = self.app.latest_update
         if is_available:
             dynamic_items.append(MenuItem(messenger("update_available", ver_name), lambda icon, item: open_url(url)))
             dynamic_items.append(Menu.SEPARATOR)
 
-        return Menu(
-            *dynamic_items,
+        # ── 2. Primary Status & User Items ──────────────────────
+        status_items = [
             MenuItem(messenger("user", config.username), self.open_profile),
             MenuItem(lambda item: self.app.current_track_name, None, enabled=False),
-            # Display stats item
             MenuItem(self._get_dynamic_artist_stats, None, enabled=False),
             MenuItem(self._get_dynamic_discord_status, None, enabled=False),
             Menu.SEPARATOR,
-            # Small Image Options
-            MenuItem(
-                messenger("menu_small_image_options"),
-                Menu(
-                    MenuItem(
-                        messenger("menu_show_small_image"),
-                        lambda item: self.app.toggle_display_option("show_small_image"),
-                        checked=lambda item: config.rpc.show_small_image,
-                    ),
-                    Menu.SEPARATOR,
-                    MenuItem(
-                        messenger("menu_use_custom_profile_image"),
-                        lambda item: self.app.set_small_image_option("use_custom_profile_image"),
-                        checked=lambda item: config.rpc.use_custom_profile_image,
-                        enabled=lambda item: config.rpc.show_small_image,
-                    ),
-                    MenuItem(
-                        messenger("menu_use_default_icon"),
-                        lambda item: self.app.set_small_image_option("use_default_icon"),
-                        checked=lambda item: config.rpc.use_default_icon,
-                        enabled=lambda item: config.rpc.show_small_image,
-                    ),
-                    MenuItem(
-                        messenger("menu_use_lastfm_icon"),
-                        lambda item: self.app.set_small_image_option("use_lastfm_icon"),
-                        checked=lambda item: config.rpc.use_lastfm_icon,
-                        enabled=lambda item: config.rpc.show_small_image,
-                    ),
-                    Menu.SEPARATOR,
-                    MenuItem(
-                        messenger("menu_show_username"),
-                        lambda item: self.app.toggle_display_option("show_username"),
-                        checked=lambda item: config.rpc.show_username,
-                        enabled=lambda item: config.rpc.show_small_image,
-                    ),
-                    MenuItem(
-                        messenger("menu_show_scrobbles"),
-                        lambda item: self.app.toggle_display_option("show_scrobbles"),
-                        checked=lambda item: config.rpc.show_scrobbles,
-                        enabled=lambda item: config.rpc.show_small_image,
-                    ),
-                    MenuItem(
-                        messenger("menu_show_artists"),
-                        lambda item: self.app.toggle_display_option("show_artists"),
-                        checked=lambda item: config.rpc.show_artists,
-                        enabled=lambda item: config.rpc.show_small_image,
-                    ),
-                    MenuItem(
-                        messenger("menu_show_loved"),
-                        lambda item: self.app.toggle_display_option("show_loved"),
-                        checked=lambda item: config.rpc.show_loved,
-                        enabled=lambda item: config.rpc.show_small_image,
-                    ),
-                ),
-            ),
-            # Large Image Options
-            MenuItem(
-                messenger("menu_large_image_options"),
-                Menu(
-                    MenuItem(
-                        messenger("menu_show_artist_scrobbles"),
-                        lambda item: self.app.set_large_image_option(True),
-                        checked=lambda item: config.rpc.show_artist_scrobbles_large,
-                    ),
-                    MenuItem(
-                        messenger("menu_show_album_name"),
-                        lambda item: self.app.set_large_image_option(False),
-                        checked=lambda item: not config.rpc.show_artist_scrobbles_large,
-                    ),
-                ),
-            ),
+        ]
+
+        # ── 3. Configuration Sub-Menus ──────────────────────────
+        config_menus = [
+            MenuItem(messenger("menu_small_image_options"), self._setup_small_image_menu()),
+            MenuItem(messenger("menu_large_image_options"), self._setup_large_image_menu()),
             Menu.SEPARATOR,
+        ]
+
+        # ── 4. Main Actions & App Controls ──────────────────────
+        actions = [
             MenuItem(messenger("menu_settings"), self.open_settings),
+            MenuItem(
+                messenger("menu_auto_start"), self.app.toggle_auto_start, checked=lambda item: config.auto_start_enabled
+            ),
             MenuItem(messenger("menu_check_updates"), self.app.check_updates_manual),
             MenuItem(messenger("debug_mode"), self.app.toggle_debug, checked=lambda item: self.app.debug_enabled),
             MenuItem(messenger("exit"), self.app.exit_app),
+        ]
+
+        return Menu(*dynamic_items, *status_items, *config_menus, *actions)
+
+    def _setup_small_image_menu(self):
+        """Builds the sub-menu for Small Image configuration."""
+        return Menu(
+            MenuItem(
+                messenger("menu_show_small_image"),
+                lambda item: self.app.toggle_display_option("show_small_image"),
+                checked=lambda item: config.rpc.show_small_image,
+            ),
+            Menu.SEPARATOR,
+            MenuItem(
+                messenger("menu_use_custom_profile_image"),
+                lambda item: self.app.set_small_image_option("use_custom_profile_image"),
+                checked=lambda item: config.rpc.use_custom_profile_image,
+                enabled=lambda item: config.rpc.show_small_image,  # type: ignore
+            ),
+            MenuItem(
+                messenger("menu_use_default_icon"),
+                lambda item: self.app.set_small_image_option("use_default_icon"),
+                checked=lambda item: config.rpc.use_default_icon,
+                enabled=lambda item: config.rpc.show_small_image,
+            ),
+            MenuItem(
+                messenger("menu_use_lastfm_icon"),
+                lambda item: self.app.set_small_image_option("use_lastfm_icon"),
+                checked=lambda item: config.rpc.use_lastfm_icon,
+                enabled=lambda item: config.rpc.show_small_image,
+            ),
+            MenuItem(
+                "Use Custom URL",
+                lambda item: self.app.set_small_image_option("use_custom_small_image"),
+                checked=lambda item: config.rpc.use_custom_small_image,
+                enabled=lambda item: config.rpc.show_small_image,
+            ),
+            Menu.SEPARATOR,
+            MenuItem(
+                messenger("menu_show_username"),
+                lambda item: self.app.toggle_display_option("show_username"),
+                checked=lambda item: config.rpc.show_username,
+                enabled=lambda item: (
+                    config.rpc.show_small_image and config.rpc.show_small_text and not config.rpc.use_custom_small_text
+                ),
+            ),
+            MenuItem(
+                messenger("menu_show_scrobbles"),
+                lambda item: self.app.toggle_display_option("show_scrobbles"),
+                checked=lambda item: config.rpc.show_scrobbles,
+                enabled=lambda item: (
+                    config.rpc.show_small_image and config.rpc.show_small_text and not config.rpc.use_custom_small_text
+                ),
+            ),
+            MenuItem(
+                messenger("menu_show_artists"),
+                lambda item: self.app.toggle_display_option("show_artists"),
+                checked=lambda item: config.rpc.show_artists,
+                enabled=lambda item: (
+                    config.rpc.show_small_image and config.rpc.show_small_text and not config.rpc.use_custom_small_text
+                ),
+            ),
+            MenuItem(
+                messenger("menu_show_loved"),
+                lambda item: self.app.toggle_display_option("show_loved"),
+                checked=lambda item: config.rpc.show_loved,
+                enabled=lambda item: (
+                    config.rpc.show_small_image and config.rpc.show_small_text and not config.rpc.use_custom_small_text
+                ),
+            ),
+            MenuItem(
+                "No Text",
+                lambda item: self.app.toggle_display_option("show_small_text"),
+                checked=lambda item: not config.rpc.show_small_text,
+                enabled=lambda item: config.rpc.show_small_image and not config.rpc.use_custom_small_text,
+            ),
+            MenuItem(
+                "Use Custom Text",
+                lambda item: self.app.toggle_display_option("use_custom_small_text"),
+                checked=lambda item: config.rpc.use_custom_small_text,
+                enabled=lambda item: config.rpc.show_small_image,
+            ),
+        )
+
+    def _setup_large_image_menu(self):
+        """Builds the sub-menu for Large Image configuration."""
+        return Menu(
+            MenuItem(
+                messenger("menu_show_artist_scrobbles"),
+                lambda item: self.app.set_large_text_mode("scrobbles"),
+                checked=lambda item: config.rpc.show_large_text and config.rpc.show_artist_scrobbles_large,
+                enabled=lambda item: not config.rpc.use_custom_large_text,  # type: ignore
+            ),
+            MenuItem(
+                messenger("menu_show_album_name"),
+                lambda item: self.app.set_large_text_mode("album"),
+                checked=lambda item: config.rpc.show_large_text and not config.rpc.show_artist_scrobbles_large,
+                enabled=lambda item: not config.rpc.use_custom_large_text,
+            ),
+            MenuItem(
+                "No Text",
+                lambda item: self.app.set_large_text_mode("off"),
+                checked=lambda item: not config.rpc.show_large_text,
+                enabled=lambda item: not config.rpc.use_custom_large_text,
+            ),
+            MenuItem(
+                "Use Custom Text",
+                lambda item: self.app.toggle_display_option("use_custom_large_text"),
+                checked=lambda item: config.rpc.use_custom_large_text,
+            ),
+            Menu.SEPARATOR,
+            MenuItem(
+                "Use Custom URL",
+                lambda item: self.app.toggle_display_option("use_custom_large_image"),
+                checked=lambda item: config.rpc.use_custom_large_image,
+            ),
         )
 
     def _get_dynamic_discord_status(self, item):
@@ -180,15 +236,17 @@ class TrayManager:
             k = new_config.get("API", {}).get("KEY")
             s = new_config.get("API", {}).get("SECRET")
             lang = new_config.get("APP", {}).get("LANG")
+            a = new_config.get("APP", {}).get("AUTO_START")
             rpc_data = new_config.get("RPC")
 
-            if config.save(u, k, s, lang, rpc_config=rpc_data):
+            if config.save(u, k, s, lang, auto_start=a, rpc_config=rpc_data):
                 # Reload config to update all properties
                 config.load()
 
                 # Refresh UI and track
                 self.app.current_track_name = messenger("no_track")
                 self.app.config_needs_reload = True
+                self.app.update_event.set()
                 self.refresh()
                 return True
             return False
