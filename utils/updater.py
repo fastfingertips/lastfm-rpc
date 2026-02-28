@@ -2,7 +2,7 @@ from loguru import logger
 from packaging import version
 
 import constants.project as project
-from utils.network import get_json
+from utils.http import fetch
 
 
 def check_for_updates():
@@ -10,7 +10,15 @@ def check_for_updates():
     Checks GitHub for the latest release and compares it with the current VERSION.
     Returns a tuple (is_available, latest_version_name, html_url)
     """
-    data = get_json(project.GITHUB_RELEASES_URL, timeout=5)
+    try:
+        response = fetch(project.GITHUB_RELEASES_URL, timeout=5)
+        if response.status != 200:
+            return False, None, None
+
+        data = response.json()
+    except Exception as e:
+        logger.error(f"Failed to check for updates: {e}")
+        return False, None, None
 
     if data:
         latest_version = data.get("tag_name", "").replace("v", "")
