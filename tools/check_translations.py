@@ -4,8 +4,7 @@ import sys
 # Add 'src' to sys.path to allow absolute imports from within the src directory
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
 
-import yaml
-
+from utils.core.io import load_yaml
 from utils.core.paths import get_translations_dir
 
 
@@ -29,8 +28,7 @@ def main():
         print(f"Error: Base language file {base_lang_file} not found.")
         sys.exit(1)
 
-    with open(base_lang_file, encoding="utf-8") as f:
-        base_data = yaml.safe_load(f) or {}
+    base_data = load_yaml(base_lang_file) or {}
 
     base_keys = get_keys(base_data)
     all_files = [f for f in os.listdir(base_dir) if f.endswith(".yaml") and f != "en-US.yaml"]
@@ -41,8 +39,7 @@ def main():
 
     for filename in all_files:
         filepath = os.path.join(base_dir, filename)
-        with open(filepath, encoding="utf-8") as f:
-            lang_data = yaml.safe_load(f) or {}
+        lang_data = load_yaml(filepath) or {}
 
         lang_keys = get_keys(lang_data)
 
