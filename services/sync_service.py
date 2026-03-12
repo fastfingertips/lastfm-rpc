@@ -111,7 +111,9 @@ class SyncService:
         self.app.update_status_display(display_text, rpc_connected=self.app.rpc.is_connected)
 
         # Update RPC status
-        await self.app.rpc.update_status(track_obj, info, config.username, user_state, lib_data, force=is_forced)
+        await self.app.rpc.update_status(
+            track_obj, info, config.username, user_state, lib_data, config.rpc, force=is_forced
+        )
 
     async def _handle_idle_state(self):
         self._cached_track = None

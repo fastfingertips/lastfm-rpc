@@ -80,6 +80,7 @@ class DiscordRPC:
         username: str,
         user_state: UserState,
         lib_data: dict,
+        rpc_config,
         force=False,
     ):
         if not info or not info.title:
@@ -96,7 +97,7 @@ class DiscordRPC:
         self.artist_scrobbles = info.artist_scrobbles
 
         # Build payload using the external builder
-        payload = build_rpc_payload(info, username, user_state, lib_data, self.start_time)
+        payload = build_rpc_payload(info, username, user_state, lib_data, self.start_time, rpc_config)
 
         await self._send_rpc_update(payload)
 

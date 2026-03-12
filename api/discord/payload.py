@@ -10,7 +10,6 @@ from constants.project import (
     NIGHT_MODE_COVER,
     YT_MUSIC_SEARCH_TEMPLATE,
 )
-from core.config import config
 from utils.clock import is_night_hours
 from utils.i18n import messenger
 from utils.strings import format_placeholders
@@ -42,12 +41,15 @@ def format_template(template: str, info: TrackInfo, username: str, user_state: U
 class RPCPayloadBuilder:
     """Encapsulates the construction logic for the Discord RPC payload."""
 
-    def __init__(self, info: TrackInfo, username: str, user_state: UserState, lib_data: dict, start_time: float):
+    def __init__(
+        self, info: TrackInfo, username: str, user_state: UserState, lib_data: dict, start_time: float, rpc_config
+    ):
         self.info = info
         self.username = username
         self.user_state = user_state
         self.lib_data = lib_data
         self.start_time = start_time
+        self.config = rpc_config
         self.artist_count = lib_data.get("artist_count", 0)
 
     def build(self):
@@ -62,7 +64,7 @@ class RPCPayloadBuilder:
 
         # 2. Final adjustments & Validation
         has_duration = self.info.duration > 0
-        display_type = StatusDisplayType.STATE if config.rpc.focus_artist else StatusDisplayType.DETAILS
+        display_type = StatusDisplayType.STATE if self.config.focus_artist else StatusDisplayType.DETAILS
 
         return {
             "activity_type": ActivityType.LISTENING,
@@ -110,28 +112,28 @@ class RPCPayloadBuilder:
             },
         }
 
-        buttons = [options[opt_key] for opt_key in [config.rpc.button_1, config.rpc.button_2] if opt_key in options]
+        buttons = [options[opt_key] for opt_key in [self.config.button_1, self.config.button_2] if opt_key in options]
         return buttons[:2] if buttons else None
 
     def _prepare_large_image_group(self):
         """Handles artwork and its hover text."""
         # ── Artwork Asset ──
-        if config.rpc.use_custom_large_image:
-            asset = format_template(config.rpc.large_image_template, self.info, self.username, self.user_state)
+        if self.config.use_custom_large_image:
+            asset = format_template(self.config.large_image_template, self.info, self.username, self.user_state)
         else:
             asset = self.info.artwork_url
             if asset is None:
                 asset = DAY_MODE_COVER if is_night_hours() else NIGHT_MODE_COVER
 
         # ── Hover Text ──
-        if not config.rpc.show_large_text:
+        if not self.config.show_large_text:
             text = None
-        elif config.rpc.use_custom_large_text:
-            text = format_template(config.rpc.large_text_template, self.info, self.username, self.user_state)
+        elif self.config.use_custom_large_text:
+            text = format_template(self.config.large_text_template, self.info, self.username, self.user_state)
         else:
             lines = {}
             if self.artist_count:
-                if config.rpc.show_artist_scrobbles_large:
+                if self.config.show_artist_scrobbles_large:
                     track_count = self.lib_data.get("track_count")
                     msg = (
                         messenger("rpc_scrobbles_total", [self.artist_count, track_count])
@@ -139,7 +141,7 @@ class RPCPayloadBuilder:
                         else messenger("rpc_scrobbles", self.artist_count)
                     )
                     lines["artist_scrobbles"] = msg
-            elif config.rpc.show_artist_scrobbles_large:
+            elif self.config.show_artist_scrobbles_large:
                 lines["first_time"] = messenger("rpc_first_time")
 
             text = format_rpc_text(lines) or (self.info.album if self.info.album else None)
@@ -148,37 +150,37 @@ class RPCPayloadBuilder:
 
     def _prepare_small_image_group(self):
         """Prepares user status icon and its hover text."""
-        if not config.rpc.show_small_image:
+        if not self.config.show_small_image:
             return None, None
 
         # ── Asset ──
-        if config.rpc.use_custom_small_image:
-            asset = format_template(config.rpc.small_image_template, self.info, self.username, self.user_state)
+        if self.config.use_custom_small_image:
+            asset = format_template(self.config.small_image_template, self.info, self.username, self.user_state)
         else:
-            if config.rpc.use_custom_profile_image and self.user_state.avatar_url:
+            if self.config.use_custom_profile_image and self.user_state.avatar_url:
                 asset = self.user_state.avatar_url
-            elif config.rpc.use_default_icon:
+            elif self.config.use_default_icon:
                 asset = DEFAULT_AVATAR_URL
-            elif config.rpc.use_lastfm_icon:
+            elif self.config.use_lastfm_icon:
                 asset = LASTFM_ICON_URL
             else:
                 asset = None
 
         # ── Hover Text ──
-        if not config.rpc.show_small_text:
+        if not self.config.show_small_text:
             text = None
-        elif config.rpc.use_custom_small_text:
-            text = format_template(config.rpc.small_text_template, self.info, self.username, self.user_state)
+        elif self.config.use_custom_small_text:
+            text = format_template(self.config.small_text_template, self.info, self.username, self.user_state)
         else:
             stats = {}
-            if config.rpc.show_username:
+            if self.config.show_username:
                 display = self.user_state.display_name or self.user_state.username
                 stats["username"] = f"{display} (@{self.user_state.username})"
-            if config.rpc.show_scrobbles:
+            if self.config.show_scrobbles:
                 stats["scrobbles"] = messenger("rpc_scrobbles", self.user_state.total_scrobbles)
-            if config.rpc.show_artists:
+            if self.config.show_artists:
                 stats["artists"] = messenger("rpc_artists", self.user_state.total_artists)
-            if config.rpc.show_loved:
+            if self.config.show_loved:
                 stats["loved"] = messenger("rpc_loved_tracks", self.user_state.total_loved_tracks)
             text = format_rpc_text(stats)
 
@@ -186,12 +188,14 @@ class RPCPayloadBuilder:
 
     def _prepare_core_text(self):
         """Formats the main two lines of text."""
-        details = format_template(config.rpc.details_template, self.info, self.username, self.user_state)
-        state = format_template(config.rpc.state_template, self.info, self.username, self.user_state)
+        details = format_template(self.config.details_template, self.info, self.username, self.user_state)
+        state = format_template(self.config.state_template, self.info, self.username, self.user_state)
         return details, state
 
 
-def build_rpc_payload(info: TrackInfo, username: str, user_state: UserState, lib_data: dict, start_time: float):
+def build_rpc_payload(
+    info: TrackInfo, username: str, user_state: UserState, lib_data: dict, start_time: float, rpc_config
+):
     """Factory function for creating the RPC payload dictionary."""
-    builder = RPCPayloadBuilder(info, username, user_state, lib_data, start_time)
+    builder = RPCPayloadBuilder(info, username, user_state, lib_data, start_time, rpc_config)
     return builder.build()
