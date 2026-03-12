@@ -1,23 +1,29 @@
+<div align="center">
+
 # Last.fm Discord Rich Presence (RPC)
 
-A modern, localized, and lightweight Discord Rich Presence client for Last.fm. Show off what you're listening to with custom statistics and artwork.
+[![Build Status](https://github.com/fastfingertips/lastfm-rpc/actions/workflows/build.yml/badge.svg)](https://github.com/fastfingertips/lastfm-rpc/actions/workflows/build.yml)
+[![Code Quality](https://github.com/fastfingertips/lastfm-rpc/actions/workflows/quality.yml/badge.svg)](https://github.com/fastfingertips/lastfm-rpc/actions/workflows/quality.yml)
+[![GitHub Version](https://img.shields.io/github/v/release/fastfingertips/lastfm-rpc?logo=github&color=blue)](https://github.com/fastfingertips/lastfm-rpc/releases)
+[![License](https://img.shields.io/github/license/fastfingertips/lastfm-rpc?logo=github&color=orange)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/fastfingertips/lastfm-rpc?style=social)](https://github.com/fastfingertips/lastfm-rpc/stargazers)
 
-### Features
-- **Real-time Sync**: Updates your Discord status as soon as you change tracks on Last.fm.
-- **Full Localization**: Support for English, Turkish, and Spanish.
-- **Dynamic Configuration**: Change settings (Username, API Keys, Language) on the fly without restarting.
-- **Smart Tracking**: Displays scrobble counts, artist stats, and "Loved" status.
-- **Auto-Update Checker**: Stay notified when a new version is released.
-- **Modern Stack**: Managed with `uv` for lightning-fast environment setup.
+A Discord Rich Presence client for Last.fm that synchronizes listening activity to a Discord profile. Includes a graphical interface for settings and supports multiple languages.
+
+[Usage](#usage) • [Setup](#setup) • [Building](#building-from-source)
+
+---
 
 ### Demo
 https://github.com/user-attachments/assets/c5bbbdcf-f212-4093-86d7-8bc527cb5eda
 
+</div>
+
 ---
 
-### Quick Start (Recommended)
+### Usage
 
-This project uses **uv** for the best experience. If you don't have it, install it from [astral.sh/uv](https://astral.sh/uv).
+This project uses [uv](https://astral.sh/uv) for environment management.
 
 1. **Clone the Repository**
    ```bash
@@ -29,47 +35,45 @@ This project uses **uv** for the best experience. If you don't have it, install 
    ```bash
    uv run main.py
    ```
-   *The app will automatically create a virtual environment, install dependencies, and prompt you with a Settings GUI if it's your first time.*
+   *The application will initialize its environment and prompt for settings if no configuration is found.*
 
 ---
 
-### Configuration & API Setup
+### Setup
 
-Upon first run, a Modern Settings GUI will appear. You will need:
-- **Last.fm API Key/Secret**: [Create them here](https://www.last.fm/api/account/create) or [view existing ones](https://www.last.fm/api/accounts).
+To use this client, you will need:
 - **Last.fm Username**: Your public profile name.
+- **Last.fm API Credentials**: You can [create an API account here](https://www.last.fm/api/account/create) or [manage existing ones here](https://www.last.fm/api/accounts).
 
-All settings are stored in `config.yaml`.
+Configuration is stored locally in `config.yaml`.
 
-### Advanced Usage
+---
 
-#### CLI Commands
-Since the project uses `uv` entry points, you can also run it as a direct command:
-```bash
-uv run lastfm-rpc
-```
+### Building from Source
 
-#### Running without UV (Classic way)
-If you prefer standard Python:
-```bash
-pip install .
-python main.py
-```
+To compile a standalone executable for Windows using Nuitka:
 
-### Building from Source (EXE)
+1. **Install Development Dependencies**:
+   ```bash
+   uv sync --dev
+   ```
 
-This project includes a modern build script using **Nuitka** to compile a standalone executable.
+2. **Run the Build Script**:
+   ```bash
+   uv run python tools/build.py
+   ```
 
-1.  **Install Development Dependencies**:
-    ```bash
-    uv sync --dev
-    ```
-
-2.  **Run the Build Script**:
-    ```bash
-    python build.py
-    ```
-    The compiled `.exe` will be located in the `dist/` folder.
+---
 
 ### License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+### Star History
+
+<div align="center">
+
+[![Star History Chart](https://api.star-history.com/svg?repos=fastfingertips/lastfm-rpc&theme=dark)](https://star-history.com/#fastfingertips/lastfm-rpc&Date)
+
+</div>
