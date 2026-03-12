@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import yaml
 from loguru import logger
@@ -62,6 +63,16 @@ class ConfigManager:
             i18n.load(self.app_lang)
         except Exception as e:
             logger.error(f"Failed to load config: {e}")
+
+    def update_rpc(self, key: str, value: Any):
+        """Updates a specific RPC setting and saves immediately."""
+        if hasattr(self._config.rpc, key):
+            setattr(self._config.rpc, key, value)
+            self.save_now()
+
+    def save_now(self):
+        """Saves current state without changing fields."""
+        self.save()
 
     def save(self, username=None, api_key=None, api_secret=None, lang=None, auto_start=None, rpc_config=None) -> bool:
         """Saves current state to YAML and refreshes i18n."""
