@@ -111,4 +111,3 @@ class ConfigManager:
 
 
 config = ConfigManager()
-config.load()
