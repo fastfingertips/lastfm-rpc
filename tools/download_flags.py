@@ -1,6 +1,6 @@
 import os
 
-from utils.http import fetch
+from utils.net.http import fetch
 
 
 def download_flags():

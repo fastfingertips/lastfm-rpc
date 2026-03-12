@@ -5,9 +5,9 @@ from loguru import logger
 
 from api.lastfm.models import UserState
 from constants.project import DEFAULT_AVATAR_ID, LASTFM_LIBRARY_URL, LASTFM_USER_URL
-from utils.http import async_fetch
-from utils.strings import parse_integer
-from utils.urls import url_encoder
+from utils.core.strings import parse_integer
+from utils.net.http import async_fetch
+from utils.net.urls import url_encoder
 
 logger = logger.bind(name="lastfm_scraper")
 

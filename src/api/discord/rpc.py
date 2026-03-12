@@ -5,7 +5,7 @@ from api.discord.exceptions import DiscordError
 from api.discord.payload import build_rpc_payload
 from api.lastfm.models import TrackInfo, UserState
 from constants.project import CLIENT_ID, RPC_SYNC_OFFSET
-from utils.clock import now, now_timestamp
+from utils.core.clock import now, now_timestamp
 
 logger = logger.bind(name="rpc")
 

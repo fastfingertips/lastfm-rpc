@@ -31,7 +31,7 @@ Issues = "https://github.com/fastfingertips/lastfm-rpc/issues"
 lastfm-rpc = "main:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["api", "constants", "core", "utils", "translations", "assets"]
+packages = ["src/api", "src/constants", "src/core", "src/utils", "resources/translations", "resources/assets"]
 
 [tool.uv]
 managed = true
@@ -88,6 +88,7 @@ known-first-party = ["api", "core", "utils", "constants"]
 [tool.pyright]
 pythonVersion = "3.11"
 typeCheckingMode = "basic"
+extraPaths = ["src"]
 reportMissingImports = true
 reportMissingTypeStubs = false
 reportUnusedImport = true
@@ -98,9 +99,8 @@ exclude = [
     "__pycache__",
 ]
 
-# ── Vulture (Dead Code Detection) ────────────────────────
 [tool.vulture]
 min_confidence = 80
-paths = ["api", "core", "utils", "main.py"]
+paths = ["src", "main.py"]
 exclude = [".venv", "dist", "__pycache__"]
 ignore_names = ["item"]  # pystray callbacks require (icon, item) signature

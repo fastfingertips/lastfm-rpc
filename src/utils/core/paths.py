@@ -13,19 +13,22 @@ def get_project_root() -> str:
         # If running as an executable
         return os.path.dirname(sys.executable)
 
-    # When running as a script, we assume this file is in utils/ and the root is one level up
+    # When running as a script, we assume this file is in src/utils/core/
+    # and the root is three levels up
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.dirname(current_dir)
+    return os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 
 
 def get_asset_path(filename: str) -> str:
     """Returns the absolute path to an asset file."""
-    return os.path.join(get_project_root(), "assets", filename)
+    # Assets are now in resources/assets
+    return os.path.join(get_project_root(), "resources", "assets", filename)
 
 
 def get_translation_path(lang_code: str) -> str:
     """Returns the absolute path to a translation file."""
-    return os.path.join(get_project_root(), "translations", f"{lang_code}.yaml")
+    # Translations are now in resources/translations
+    return os.path.join(get_project_root(), "resources", "translations", f"{lang_code}.yaml")
 
 
 def get_log_dir() -> str:

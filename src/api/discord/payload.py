@@ -10,10 +10,10 @@ from constants.project import (
     NIGHT_MODE_COVER,
     YT_MUSIC_SEARCH_TEMPLATE,
 )
-from utils.clock import is_night_hours
-from utils.i18n import messenger
-from utils.strings import format_placeholders
-from utils.urls import url_encoder
+from utils.app.i18n import messenger
+from utils.core.clock import is_night_hours
+from utils.core.strings import format_placeholders
+from utils.net.urls import url_encoder
 
 logger = logger.bind(name="rpc_payload")
 

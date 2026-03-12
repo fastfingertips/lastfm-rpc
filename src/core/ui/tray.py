@@ -7,12 +7,12 @@ from pystray import Icon
 
 import constants.project as project
 from core.config import config
-from core.gui import ConfigGUI
-from core.tray_menu import TrayMenuFactory
-from utils.dialogs import show_error
-from utils.i18n import messenger
-from utils.paths import get_asset_path
-from utils.urls import open_url
+from core.ui.gui import ConfigGUI
+from core.ui.tray_menu import TrayMenuFactory
+from utils.app.i18n import messenger
+from utils.core.paths import get_asset_path
+from utils.gui.dialogs import show_error
+from utils.net.urls import open_url
 
 logger = logger.bind(name="app")
 
@@ -71,7 +71,7 @@ class TrayManager:
 
         def run_gui():
             try:
-                ConfigGUI.launch(config.data, on_save)
+                ConfigGUI.launch(config, on_save)
             finally:
                 self._settings_open = False
 

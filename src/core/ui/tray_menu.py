@@ -1,8 +1,8 @@
 from pystray import Menu, MenuItem
 
 from core.config import config
-from utils.clock import format_time
-from utils.i18n import messenger
+from utils.app.i18n import messenger
+from utils.core.clock import format_time
 
 
 class TrayMenuFactory:
@@ -17,7 +17,7 @@ class TrayMenuFactory:
         # 1. Update Notification
         is_available, ver_name, url = self.app.latest_update
         if is_available:
-            from utils.urls import open_url
+            from utils.net.urls import open_url
 
             dynamic_items.append(MenuItem(messenger("update_available", ver_name), lambda i, item: open_url(url)))
             dynamic_items.append(Menu.SEPARATOR)

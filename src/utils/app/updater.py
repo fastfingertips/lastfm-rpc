@@ -2,7 +2,7 @@ from loguru import logger
 from packaging import version
 
 import constants.project as project
-from utils.http import fetch
+from utils.net.http import fetch
 
 
 def check_for_updates():

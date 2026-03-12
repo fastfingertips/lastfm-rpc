@@ -5,7 +5,7 @@ import os
 import yaml
 from loguru import logger
 
-from utils.paths import get_project_root
+from utils.core.paths import get_project_root
 
 logger = logger.bind(name="i18n")
 

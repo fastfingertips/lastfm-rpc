@@ -10,7 +10,7 @@ from api.lastfm.user.scraper import LastFMScraper
 from api.lastfm.user.tracking import LastFMTracker
 from core.config import config
 from core.exceptions import AppNetworkError
-from utils.i18n import messenger
+from utils.app.i18n import messenger
 
 logger = logger.bind(name="sync")
 

@@ -4,6 +4,8 @@ import shutil
 import subprocess
 import sys
 
+# Add 'src' to sys.path to allow importing constants during build script execution
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 from constants.project import VERSION  # noqa: E402
 
 # Force utf-8 for Windows console output
@@ -17,7 +19,7 @@ class AppBuilder:
         self.app_name = "lastfm-rpc"
         self.main_script = "main.py"
         self.output_dir = "dist"
-        self.icon_path = os.path.join("assets", "last_fm.png")
+        self.icon_path = os.path.join("resources", "assets", "last_fm.png")
         self.version = VERSION.lstrip("v")
 
     def clean(self):
@@ -45,8 +47,9 @@ class AppBuilder:
             "nuitka",
             "--standalone",
             "--enable-plugin=tk-inter",
-            "--include-data-dir=assets=assets",
-            "--include-data-dir=translations=translations",
+            # Include resources from the new resources/ directory
+            "--include-data-dir=resources/assets=assets",
+            "--include-data-dir=resources/translations=translations",
             "--windows-console-mode=disable",
             f"--windows-icon-from-ico={self.icon_path}",
             f"--output-filename={self.app_name}",
@@ -90,6 +93,10 @@ class AppBuilder:
         print("=" * 60)
 
         self.clean()
+
+        # Set PYTHONPATH so Nuitka can find the 'api', 'core', etc. packages inside 'src'
+        os.environ["PYTHONPATH"] = os.path.join(os.getcwd(), "src")
+
         cmd = self.get_nuitka_cmd()
 
         print("\nExecuting Nuitka build command...")

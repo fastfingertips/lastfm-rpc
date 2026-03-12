@@ -1,6 +1,6 @@
 import customtkinter as ctk
 
-from utils.i18n import messenger
+from utils.app.i18n import messenger
 
 
 class GuiComponents:

@@ -5,10 +5,11 @@ from loguru import logger
 from PIL import Image, ImageEnhance
 
 from constants.project import APP_NAME, VERSION
-from core.gui_components import GuiComponents
-from utils.dialogs import show_warning
-from utils.i18n import i18n, messenger
-from utils.urls import open_url
+from core.ui.gui_components import GuiComponents
+from utils.app.i18n import i18n, messenger
+from utils.core.paths import get_asset_path
+from utils.gui.dialogs import show_warning
+from utils.net.urls import open_url
 
 logger = logger.bind(name="gui")
 
@@ -218,9 +219,8 @@ class ConfigGUI:
 
     def _draw_flags(self, parent):
         curr = self.temp_values.get("lang", self.config.app_lang)
-        f_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "flags")
         for lang in ["tr-TR", "en-US", "es-ES"]:
-            path = os.path.join(f_dir, f"{lang}.png")
+            path = get_asset_path(os.path.join("flags", f"{lang}.png"))
             if not os.path.exists(path):
                 continue
             img = Image.open(path).convert("RGBA")

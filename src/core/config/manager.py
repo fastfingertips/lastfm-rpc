@@ -4,7 +4,7 @@ from typing import Any
 import yaml
 from loguru import logger
 
-from utils.paths import get_project_root
+from utils.core.paths import get_project_root
 
 from .models import AppConfig, RpcDisplayConfig
 
@@ -49,7 +49,7 @@ class ConfigManager:
 
     def load(self):
         """Loads configuration from YAML and triggers i18n reload."""
-        from utils.i18n import i18n
+        from utils.app.i18n import i18n
 
         try:
             with open(self.config_path, encoding="utf-8") as f:
@@ -76,7 +76,7 @@ class ConfigManager:
 
     def save(self, username=None, api_key=None, api_secret=None, lang=None, auto_start=None, rpc_config=None) -> bool:
         """Saves current state to YAML and refreshes i18n."""
-        from utils.i18n import i18n
+        from utils.app.i18n import i18n
 
         if username is not None:
             self._config.user.username = username

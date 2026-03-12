@@ -1,8 +1,15 @@
 # ruff: noqa: I001
+import os
 import sys
+
+# Add 'src' to sys.path to allow absolute imports from within the src directory
+src_path = os.path.join(os.path.dirname(__file__), "src")
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
 from loguru import logger
-from utils.logger import setup_logging
-from utils.runtime import setup_global_exception_handler
+from utils.core.logger import setup_logging
+from utils.app.runtime import setup_global_exception_handler
 
 # 1. Early Initialization (Logging & Safety)
 setup_logging(level="INFO")

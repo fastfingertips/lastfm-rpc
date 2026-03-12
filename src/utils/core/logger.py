@@ -5,7 +5,7 @@ import sys
 
 from loguru import logger
 
-from utils.paths import get_log_dir
+from utils.core.paths import get_log_dir
 
 
 class InterceptHandler(logging.Handler):

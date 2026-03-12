@@ -4,13 +4,13 @@ from loguru import logger
 
 from api.discord.rpc import DiscordRPC
 from core.config import config
-from core.tray import TrayManager
-from services.sync_service import SyncService
-from utils.autostart import toggle_autostart
-from utils.dialogs import ask_yes_no, show_info
-from utils.i18n import messenger
-from utils.logger import setup_logging
-from utils.urls import open_url
+from core.sync_service import SyncService
+from core.ui.tray import TrayManager
+from utils.app.autostart import toggle_autostart
+from utils.app.i18n import messenger
+from utils.core.logger import setup_logging
+from utils.gui.dialogs import ask_yes_no, show_info
+from utils.net.urls import open_url
 
 logger = logger.bind(name="app")
 
@@ -108,7 +108,7 @@ class App:
 
     def check_updates_manual(self, icon, item):
         def run():
-            from utils.updater import check_for_updates
+            from utils.app.updater import check_for_updates
 
             is_avail, ver, url = check_for_updates()
             if is_avail:
@@ -132,7 +132,7 @@ class App:
 
     def _trigger_update_check(self):
         def run():
-            from utils.updater import check_for_updates
+            from utils.app.updater import check_for_updates
 
             is_avail, ver, url = check_for_updates()
             if is_avail:
