@@ -3,7 +3,6 @@ from loguru import logger
 
 from api.lastfm.exceptions import APIKeyError, LastFMError
 from api.lastfm.models import TrackInfo
-from core.config import config
 from utils.clock import ms_to_seconds
 from utils.i18n import messenger
 
@@ -11,24 +10,29 @@ logger = logger.bind(name="lastfm")
 
 
 class LastFMTracker:
-    def __init__(self, username, cooldown=None):
+    def __init__(self, username, api_key, api_secret, cooldown=None):
         from constants.project import DEFAULT_COOLDOWN
 
         self.username = username
+        self.api_key = api_key
+        self.api_secret = api_secret
         self.cooldown = cooldown if cooldown is not None else DEFAULT_COOLDOWN
         self.network = None
         self.lastfm_user = None
         self.last_track = None
         self.last_track_info = None
 
-        self.refresh_network(username)
+        self.refresh_network(username, api_key, api_secret)
 
-    def refresh_network(self, username):
+    def refresh_network(self, username, api_key=None, api_secret=None):
         """Initializes or updates the Last.fm network connection."""
         self.username = username
+        self.api_key = api_key or self.api_key
+        self.api_secret = api_secret or self.api_secret
+
         self.network = pylast.LastFMNetwork(
-            config.api_key,
-            config.api_secret,
+            self.api_key,
+            self.api_secret,
         )
         self.lastfm_user = self.network.get_user(username)
         logger.debug(f"LastFMTracker network refreshed for user: {username}")

@@ -14,6 +14,18 @@ logger = logger.bind(name="gui")
 
 
 class ConfigGUI:
+    @staticmethod
+    def launch(current_config, on_save_callback):
+        """Helper to create and run the GUI instance."""
+        gui = ConfigGUI(current_config, on_save_callback)
+
+        def on_close():
+            gui.root.quit()
+            gui.root.destroy()
+
+        gui.root.protocol("WM_DELETE_WINDOW", on_close)
+        gui.run()
+
     def __init__(self, current_config, on_save_callback):
         self.root = ctk.CTk()
         self.root.title(f"{APP_NAME} - {messenger('menu_settings')}")

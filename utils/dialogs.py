@@ -61,18 +61,3 @@ def ask_yes_no(title: str, message: str, parent=None) -> bool:
     if temp_root:
         temp_root.destroy()
     return result
-
-
-def ask_config_gui(current_vals, on_save_callback):
-    """Centrally launches the Config GUI."""
-    from core.gui import ConfigGUI
-
-    gui = ConfigGUI(current_vals, on_save_callback)
-
-    # Optional: Setup close protocol if needed here
-    def on_close():
-        gui.root.quit()
-        gui.root.destroy()
-
-    gui.root.protocol("WM_DELETE_WINDOW", on_close)
-    gui.run()

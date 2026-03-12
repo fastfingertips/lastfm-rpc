@@ -5,7 +5,7 @@ from loguru import logger
 import constants.project as project
 from api.discord.exceptions import DiscordError
 from api.lastfm.exceptions import APIKeyError, LastFMError
-from api.lastfm.models import TrackInfo, UserState
+from api.lastfm.models import TrackInfo
 from api.lastfm.user.scraper import LastFMScraper
 from api.lastfm.user.tracking import LastFMTracker
 from core.config import config
@@ -16,159 +16,116 @@ logger = logger.bind(name="sync")
 
 
 class SyncService:
-    """Handles the background synchronization loop with Last.fm and Discord."""
+    """Orchestrates the background synchronization loop between Last.fm and Discord."""
 
     def __init__(self, app):
         self.app = app
-        self.cached_track_data = None
-        self.last_fetched_track = None
-        self.cached_user_data = None
-        self.cached_library_data = None
-        self.scraper = LastFMScraper(config.username)
+        self._cached_track = None
+        self._cached_metadata = (None, None)  # user_state, library_data
+        self._scraper = LastFMScraper(config.username)
 
     def start(self):
-        """Runs the async RPC updater within a thread."""
+        """Entry point for the service thread."""
         logger.info(messenger("starting_rpc"))
-
-        # Start async worker loop using asyncio.run
         try:
             asyncio.run(self._run_loop())
         except Exception as e:
-            logger.error(f"Fatal error in async loop: {e}")
+            logger.error(f"Fatal crash in SyncService: {e}")
 
-    async def _run_loop(self):  # noqa: C901
-
-        # Connect to Discord within the event loop
+    async def _run_loop(self):
         await self.app.rpc.enable()
+        tracker = LastFMTracker(config.username, config.api_key, config.api_secret)
 
-        tracker = LastFMTracker(config.username)
+        while not self.app.exit_event.is_set():
+            if self.app.config_needs_reload:
+                self._handle_config_reload(tracker)
 
-        try:
-            while not self.app.exit_event.is_set():
-                # Check if config was reloaded via GUI
-                if self.app.config_needs_reload:
-                    logger.info(f"Applying new configuration for user: {config.username}")
-                    tracker.refresh_network(config.username)
-                    self.scraper.username = config.username
-                    self.app.config_needs_reload = False
+            is_forced = self.app.update_event.is_set()
+            self.app.update_event.clear()
 
-                # Check if this iteration was triggered by an event (settings change)
-                is_forced_update = self.app.update_event.is_set()
-                self.app.update_event.clear()
+            try:
+                wait_time = await self._process_cycle(tracker, is_forced)
+                await self._responsive_sleep(wait_time)
+            except APIKeyError as e:
+                await self.app.handle_api_error(e)
+                await self._wait_for_fix()
+            except DiscordError as e:
+                logger.warning(f"Discord error: {e}. Disabling RPC...")
+                await self.app.rpc.disable()
+                await self._responsive_sleep(10.0)
+            except (AppNetworkError, LastFMError) as e:
+                logger.warning(f"Provider error: {e}. Retrying...")
+                await self._responsive_sleep(5.0)
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}", exc_info=True)
+                await self._responsive_sleep(5.0)
 
-                try:
-                    wait_time = await self._perform_rpc_cycle(tracker, is_forced_update)
-                    await self._wait_responsive(wait_time)
+    def _handle_config_reload(self, tracker: LastFMTracker):
+        logger.info(messenger("config_reloading", config.username))
+        tracker.refresh_network(config.username, config.api_key, config.api_secret)
+        self._scraper.username = config.username
+        self.app.config_needs_reload = False
 
-                except APIKeyError as e:
-                    await self.app.handle_api_error(e)
-                    # Loop stays idle waiting for update_event (triggered by settings save)
-                    while not self.app.update_event.is_set() and not self.app.exit_event.is_set():
-                        await asyncio.sleep(1.0)
-                    continue
-
-                except DiscordError as e:
-                    logger.warning(f"Discord RPC error: {e}. Will retry in next cycle.")
-                    # Fallback: application keeps running, just Discord status fails
-                    await self.app.rpc.disable()
-
-                except AppNetworkError as e:
-                    logger.warning(f"Connection issue: {e}. Retrying after cooldown...")
-                    # Optional: notify tray about connection issues
-
-                except LastFMError as e:
-                    logger.warning(f"Last.fm data error: {e}. Retrying...")
-
-                except Exception as e:
-                    logger.error(f"Unexpected error in RPC loop: {e}", exc_info=True)
-
-                await self._wait_responsive(5.0)  # Cooldown after error or cycle
-        finally:
-            logger.info("Closing Scraper and Discord connection...")
-            await self.scraper.close()
-            await self.app.rpc.disable()
-
-    async def _perform_rpc_cycle(self, tracker, is_forced_update):
-        """
-        Executes a single cycle of the RPC update process.
-        Returns the wait time for the next cycle.
-        """
-        if is_forced_update and self.cached_track_data:
-            current_track, data = self.cached_track_data
-        else:
-            current_track, data = await asyncio.to_thread(tracker.now_playing)
-            if data:
-                self.cached_track_data = (current_track, data)
-
-        if data:
-            user_state, lib_data = await self._get_metadata_with_cache(current_track, data.artist, data.title)
-            if user_state and lib_data:
-                await self._handle_active_track(current_track, data, user_state, lib_data, is_forced_update)
-            return project.TRACK_CHECK_INTERVAL
-
-        await self._handle_no_track()
-        self.cached_track_data = None
-        return project.UPDATE_INTERVAL
-
-    async def _get_metadata_with_cache(self, track_obj, artist, title) -> tuple[UserState | None, dict | None]:
-        """Fetch user and library data with caching logic."""
-        if self.last_fetched_track == track_obj and self.cached_user_data and self.cached_library_data:
-            logger.debug(f"Using cached Last.fm stats for {track_obj}")
-            return self.cached_user_data, self.cached_library_data
-
-        user_state, library_data = await asyncio.gather(
-            self.scraper.get_user_state(), self.scraper.get_library_data(artist, title)
+    async def _process_cycle(self, tracker, is_forced):
+        """Executes a single fetch-and-update step."""
+        # Fetch current track
+        current_track, info = (
+            await asyncio.to_thread(tracker.now_playing)
+            if not is_forced or not self._cached_track
+            else self._cached_track
         )
 
-        if not user_state:
-            logger.error(f"User data not found for {config.username}")
-            return None, None
+        if not info:
+            await self._handle_idle_state()
+            return project.UPDATE_INTERVAL
 
-        # Update cache
-        self.last_fetched_track = track_obj
-        self.cached_user_data = user_state
-        self.cached_library_data = library_data
+        # Cache track and fetch metadata
+        self._cached_track = (current_track, info)
+        user_state, lib_data = await self._fetch_metadata(current_track, info)
 
-        return user_state, library_data
+        if user_state:
+            await self._handle_active_track(current_track, info, user_state, lib_data, is_forced)
+            return project.TRACK_CHECK_INTERVAL
 
-    async def _wait_responsive(self, seconds: float):
-        """Waits for a given time but remains responsive to exit/update events."""
+        return project.UPDATE_INTERVAL
+
+    async def _fetch_metadata(self, track_obj, info: TrackInfo):
+        """Retrieves user stats with simple object-based caching."""
+        if self._cached_track and self._cached_track[0] == track_obj and self._cached_metadata[0]:
+            return self._cached_metadata
+
+        user_state, lib_data = await asyncio.gather(
+            self._scraper.get_user_state(), self._scraper.get_library_data(info.artist, info.title)
+        )
+        self._cached_metadata = (user_state, lib_data)
+        return user_state, lib_data
+
+    async def _handle_active_track(self, track_obj, info: TrackInfo, user_state, lib_data, is_forced):
+        """Processes and updates UI/RPC for an active track."""
+        # Clean mapping logic belonging to service layer
+        info.artist_scrobbles = lib_data.get("artist_count", 0)
+        info.track_scrobbles = lib_data.get("track_count", 0)
+
+        # Update App UI State
+        display_text = messenger("now_playing", f"{info.artist} - {info.title}")
+        self.app.update_status_display(display_text, rpc_connected=self.app.rpc.is_connected)
+
+        # Update RPC status
+        await self.app.rpc.update_status(track_obj, info, config.username, user_state, lib_data, force=is_forced)
+
+    async def _handle_idle_state(self):
+        self._cached_track = None
+        self._cached_metadata = (None, None)
+        self.app.update_status_display(messenger("no_track"), rpc_connected=self.app.rpc.is_connected)
+        await self.app.rpc.clear_status()
+
+    async def _responsive_sleep(self, seconds):
         for _ in range(int(seconds * 2)):
             if self.app.update_event.is_set() or self.app.exit_event.is_set():
                 break
             await asyncio.sleep(0.5)
 
-    async def _update_app_state(self, new_display_name, log_prefix="Status"):
-        """Udpates application tracking state and refreshes UI if changed."""
-        has_changed = (
-            self.app.current_track_name != new_display_name or self.app._rpc_connected != self.app.rpc.is_connected
-        )
-
-        if has_changed:
-            self.app.current_track_name = new_display_name
-            self.app._rpc_connected = self.app.rpc.is_connected
-            logger.info(f"{log_prefix}: {self.app.current_track_name} | Discord: {self.app._rpc_connected}")
-            self.app.tray.update_title(new_display_name)
-            self.app.tray.refresh()
-            return True
-        return False
-
-    async def _handle_active_track(
-        self, current_track, info: TrackInfo, user_state: UserState, lib_data: dict, is_forced_update=False
-    ):
-        """Handle the case where a track is playing."""
-        formatted_track = f"{info.artist} - {info.title}"
-        new_track_display = messenger("now_playing", formatted_track)
-
-        if not await self._update_app_state(new_track_display):
-            logger.debug(f"Polling: {formatted_track}")
-
-        # Heavy data update
-        await self.app.rpc.update_status(
-            current_track, info, config.username, user_state, lib_data, force=is_forced_update
-        )
-
-    async def _handle_no_track(self):
-        """Handle the case where no track is playing."""
-        await self._update_app_state(messenger("no_track"), log_prefix="Tray Update")
-        await self.app.rpc.clear_status()
+    async def _wait_for_fix(self):
+        """Block loop until user updates settings."""
+        while not self.app.update_event.is_set() and not self.app.exit_event.is_set():
+            await asyncio.sleep(1.0)

@@ -86,16 +86,25 @@ class App:
             self.tray.refresh()
 
     async def handle_api_error(self, e):
-        """Domain logic for handling Last.fm API failures."""
-        logger.critical(f"API Error: {e}")
-        self.current_track_name = messenger("api_error_status")
+        """Processes a fatal API error (e.g. wrong key) by updating UI and notifying user."""
+        logger.critical(f"Stopping RPC loop due to API Key issue: {e}")
+        self.update_status_display(messenger("api_error_status"), rpc_connected=False)
         await self.rpc.disable()
-        self.tray.update_title(self.current_track_name)
-        self.tray.refresh()
         self.tray.notify(str(e), messenger("action_required"))
 
         if ask_yes_no(messenger("err"), messenger("api_error_prompt", str(e))):
             self.tray.open_settings(None, None)
+
+    def update_status_display(self, new_status, rpc_connected=None):
+        """Standardized way to update the app's track status and refresh tray."""
+        if rpc_connected is not None:
+            self._rpc_connected = rpc_connected
+
+        if self.current_track_name != new_status:
+            self.current_track_name = new_status
+            self.tray.update_title(new_status)
+            self.tray.refresh()
+            logger.info(f"Status Update: {new_status} | Discord: {self._rpc_connected}")
 
     def check_updates_manual(self, icon, item):
         def run():

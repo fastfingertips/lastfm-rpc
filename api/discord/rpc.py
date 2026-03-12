@@ -88,10 +88,6 @@ class DiscordRPC:
         if self.last_track == track_obj and self.current_artist is not None and not force:
             return
 
-        # Map metadata
-        info.artist_scrobbles = lib_data.get("artist_count", 0)
-        info.track_scrobbles = lib_data.get("track_count", 0)
-
         if self.last_track != track_obj:
             self.start_time = now_timestamp() - RPC_SYNC_OFFSET
 

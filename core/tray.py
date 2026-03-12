@@ -7,8 +7,9 @@ from pystray import Icon
 
 import constants.project as project
 from core.config import config
+from core.gui import ConfigGUI
 from core.tray_menu import TrayMenuFactory
-from utils.dialogs import ask_config_gui, show_error
+from utils.dialogs import show_error
 from utils.i18n import messenger
 from utils.paths import get_asset_path
 from utils.urls import open_url
@@ -70,7 +71,7 @@ class TrayManager:
 
         def run_gui():
             try:
-                ask_config_gui(config.data, on_save)
+                ConfigGUI.launch(config.data, on_save)
             finally:
                 self._settings_open = False
 

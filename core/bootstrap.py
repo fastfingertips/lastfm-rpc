@@ -3,7 +3,7 @@ import sys
 from loguru import logger
 
 from core.config import config
-from utils.dialogs import ask_config_gui
+from core.gui import ConfigGUI
 
 logger = logger.bind(name="bootstrap")
 
@@ -35,7 +35,7 @@ def ensure_config_ready() -> bool:
         return False
 
     # Block until GUI is closed
-    ask_config_gui(config.data, on_initial_save)
+    ConfigGUI.launch(config.data, on_initial_save)
 
     # After GUI closes, check again. If still incomplete (cancelled), exit.
     if not config.is_complete():
