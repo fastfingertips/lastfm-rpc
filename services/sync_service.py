@@ -3,11 +3,13 @@ import asyncio
 from loguru import logger
 
 import constants.project as project
+from api.discord.exceptions import DiscordError
+from api.lastfm.exceptions import APIKeyError, LastFMError
 from api.lastfm.models import TrackInfo, UserState
 from api.lastfm.user.scraper import LastFMScraper
 from api.lastfm.user.tracking import LastFMTracker
 from core.config import config
-from core.exceptions import APIKeyError, ConnectionError, DiscordError, LastFMError
+from core.exceptions import AppNetworkError
 from utils.i18n import messenger
 
 logger = logger.bind(name="sync")
@@ -70,7 +72,7 @@ class SyncService:
                     # Fallback: application keeps running, just Discord status fails
                     await self.app.rpc.disable()
 
-                except ConnectionError as e:
+                except AppNetworkError as e:
                     logger.warning(f"Connection issue: {e}. Retrying after cooldown...")
                     # Optional: notify tray about connection issues
 

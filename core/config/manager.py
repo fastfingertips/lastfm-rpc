@@ -1,11 +1,14 @@
 import os
+
 import yaml
 from loguru import logger
 
 from utils.paths import get_project_root
+
 from .models import AppConfig, RpcDisplayConfig
 
 logger = logger.bind(name="config")
+
 
 class ConfigManager:
     def __init__(self, config_path: str | None = None):
@@ -46,6 +49,7 @@ class ConfigManager:
     def load(self):
         """Loads configuration from YAML and triggers i18n reload."""
         from utils.i18n import i18n
+
         try:
             with open(self.config_path, encoding="utf-8") as f:
                 raw = yaml.safe_load(f) or {}
@@ -62,7 +66,7 @@ class ConfigManager:
     def save(self, username=None, api_key=None, api_secret=None, lang=None, auto_start=None, rpc_config=None) -> bool:
         """Saves current state to YAML and refreshes i18n."""
         from utils.i18n import i18n
-        
+
         if username is not None:
             self._config.user.username = username
         if api_key is not None:
@@ -73,7 +77,7 @@ class ConfigManager:
             self._config.app.lang = lang
         if auto_start is not None:
             self._config.app.auto_start = auto_start
-        
+
         if rpc_config:
             for key, value in rpc_config.items():
                 if hasattr(self._config.rpc, key):
@@ -82,7 +86,7 @@ class ConfigManager:
             config_dict = self._config.model_dump(by_alias=True)
             with open(self.config_path, "w", encoding="utf-8") as f:
                 yaml.dump(config_dict, f, default_flow_style=False, allow_unicode=True)
-            
+
             i18n.load(self.app_lang)
             logger.info("Config saved & reloaded.")
             return True
@@ -97,5 +101,6 @@ class ConfigManager:
             return False
         # Prevent default placeholder values from being considered 'complete'
         return not ("<" in u or "<" in k)
+
 
 config = ConfigManager()

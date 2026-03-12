@@ -1,9 +1,9 @@
 import pylast
 from loguru import logger
 
+from api.lastfm.exceptions import APIKeyError, LastFMError
 from api.lastfm.models import TrackInfo
 from core.config import config
-from core.exceptions import APIKeyError, LastFMError
 from utils.clock import ms_to_seconds
 from utils.i18n import messenger
 

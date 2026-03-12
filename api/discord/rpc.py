@@ -1,10 +1,10 @@
 from loguru import logger
 from pypresence.presence import AioPresence
 
+from api.discord.exceptions import DiscordError
 from api.discord.payload import build_rpc_payload
 from api.lastfm.models import TrackInfo, UserState
 from constants.project import CLIENT_ID, RPC_SYNC_OFFSET
-from core.exceptions import DiscordError
 from utils.clock import now, now_timestamp
 
 logger = logger.bind(name="rpc")
