@@ -1,7 +1,12 @@
 import os
 import sys
 
+# Add 'src' to sys.path to allow absolute imports from within the src directory
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
+
 import yaml
+
+from utils.core.paths import get_translations_dir
 
 
 def get_keys(data, prefix=""):
@@ -17,8 +22,7 @@ def get_keys(data, prefix=""):
 
 
 def main():
-    # Tools are expected to be run from project root
-    base_dir = os.path.join("resources", "translations")
+    base_dir = get_translations_dir()
     base_lang_file = os.path.join(base_dir, "en-US.yaml")
 
     if not os.path.exists(base_lang_file):
