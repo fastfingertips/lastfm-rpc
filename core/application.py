@@ -66,6 +66,15 @@ class App:
 
         logger.info(f"Logging level set to: {new_level}")
 
+    def reload_config(self):
+        """Refreshes application state after a configuration change."""
+        config.load()
+        self.current_track_name = messenger("no_track")
+        self.config_needs_reload = True
+        self.update_event.set()
+        self.tray.refresh()
+        logger.info("Application state reloaded after config change.")
+
     async def handle_api_error(self, e):
         """Processes a fatal API error (e.g. wrong key) by updating UI and notifying user."""
         logger.critical(f"Stopping RPC loop due to API Key issue: {e}")
