@@ -4,8 +4,11 @@ import shutil
 import subprocess
 import sys
 
+# Get project root (parent of tools directory)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # Add 'src' to sys.path to allow importing constants during build script execution
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
+sys.path.insert(0, os.path.join(PROJECT_ROOT, "src"))
 from constants.project import VERSION  # noqa: E402
 
 # Force utf-8 for Windows console output
@@ -17,9 +20,10 @@ class AppBuilder:
 
     def __init__(self):
         self.app_name = "lastfm-rpc"
-        self.main_script = "main.py"
-        self.output_dir = "dist"
-        self.icon_path = os.path.join("resources", "assets", "last_fm.png")
+        # Since we run this from project root usually, but let's be safe and use absolute paths
+        self.main_script = os.path.join(PROJECT_ROOT, "main.py")
+        self.output_dir = os.path.join(PROJECT_ROOT, "dist")
+        self.icon_path = os.path.join(PROJECT_ROOT, "resources", "assets", "last_fm.png")
         self.version = VERSION.lstrip("v")
 
     def clean(self):
@@ -48,8 +52,8 @@ class AppBuilder:
             "--standalone",
             "--enable-plugin=tk-inter",
             # Include resources from the new resources/ directory
-            "--include-data-dir=resources/assets=assets",
-            "--include-data-dir=resources/translations=translations",
+            f"--include-data-dir={os.path.join(PROJECT_ROOT, 'resources', 'assets')}=assets",
+            f"--include-data-dir={os.path.join(PROJECT_ROOT, 'resources', 'translations')}=translations",
             "--windows-console-mode=disable",
             f"--windows-icon-from-ico={self.icon_path}",
             f"--output-filename={self.app_name}",
@@ -82,8 +86,9 @@ class AppBuilder:
             print(f"Finalized output to: {final_dist}")
 
         # Copy config.yaml as a default if it exists
-        if os.path.exists("config.yaml") and os.path.exists(final_dist):
-            shutil.copy("config.yaml", os.path.join(final_dist, "config.yaml"))
+        config_src = os.path.join(PROJECT_ROOT, "config.yaml")
+        if os.path.exists(config_src) and os.path.exists(final_dist):
+            shutil.copy(config_src, os.path.join(final_dist, "config.yaml"))
             print("Successfully bundled config.yaml")
 
     def run(self):
@@ -95,7 +100,7 @@ class AppBuilder:
         self.clean()
 
         # Set PYTHONPATH so Nuitka can find the 'api', 'core', etc. packages inside 'src'
-        os.environ["PYTHONPATH"] = os.path.join(os.getcwd(), "src")
+        os.environ["PYTHONPATH"] = os.path.join(PROJECT_ROOT, "src")
 
         cmd = self.get_nuitka_cmd()
 
