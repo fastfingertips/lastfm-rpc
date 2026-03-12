@@ -7,6 +7,7 @@ from utils.logger import setup_logging
 setup_logging(level="INFO")
 from loguru import logger
 
+
 # 2. Global crash handler (critical for Nuitka standalone builds)
 def _global_exception_handler(exc_type, exc_value, exc_tb):
     if issubclass(exc_type, KeyboardInterrupt):
@@ -15,16 +16,19 @@ def _global_exception_handler(exc_type, exc_value, exc_tb):
     tb_str = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
     logger.opt(exception=True).critical(f"FATAL CRASH:\n{tb_str}")
 
+
 sys.excepthook = _global_exception_handler
 
 # 3. Load configuration after logging is ready
 logger.info("Initializing configuration...")
 from core.config import config
+
 try:
     config.load()
     logger.info("Configuration loaded successfully.")
 except Exception as e:
     logger.error(f"Failed to load config: {e}")
+
 
 def check_config():
     """Ensure configuration is complete, open settings GUI if not."""
@@ -49,6 +53,7 @@ def check_config():
         return False
     return True
 
+
 def main():
     logger.info("Entering main application flow...")
     if check_config():
@@ -62,6 +67,7 @@ def main():
             app.run()
         except Exception as e:
             logger.opt(exception=True).critical(f"Startup error: {e}")
+
 
 if __name__ == "__main__":
     main()

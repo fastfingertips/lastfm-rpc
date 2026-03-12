@@ -23,7 +23,7 @@ def build():
         # Using PowerShell for a more aggressive cleanup to avoid WinError 145/32
         subprocess.run(["powershell", "-Command", f"Remove-Item -Recurse -Force {output_dir}"], check=False)
         if os.path.exists(output_dir):
-             shutil.rmtree(output_dir, ignore_errors=True)
+            shutil.rmtree(output_dir, ignore_errors=True)
 
     # 2. Prepare paths
     main_script = "main.py"
@@ -60,10 +60,10 @@ def build():
         "--copyright=Copyright (c) 2026 FastFingertips",
         "--assume-yes-for-downloads",  # Auto-download MinGW/Dependency Walker if needed
         "--include-package=scrapling",  # Ensure the whole scrapling package is included
-        "--include-package-data=scrapling", # Include data files for scrapling
-        "--include-package-data=browserforge", # Include data files for browserforge (headers/fingerprints)
-        "--include-package-data=apify_fingerprint_datapoints", # Include the missing zip/json data files
-        "--include-package-data=tld", # Include top-level domain data files
+        "--include-package-data=scrapling",  # Include data files for scrapling
+        "--include-package-data=browserforge",  # Include data files for browserforge (headers/fingerprints)
+        "--include-package-data=apify_fingerprint_datapoints",  # Include the missing zip/json data files
+        "--include-package-data=tld",  # Include top-level domain data files
         main_script,
     ]
 
