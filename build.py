@@ -8,7 +8,8 @@ import sys
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 
-from constants.project import VERSION
+from constants.project import VERSION  # noqa: E402
+
 
 def build():
     """
