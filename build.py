@@ -87,7 +87,7 @@ def build():
             shutil.copy("config.yaml", os.path.join(final_dist, "config.yaml"))
             print("Copied config.yaml to dist folder")
 
-        print(f"\nBuild finished successfully!")
+        print("\nBuild finished successfully!")
         print(f"Executable: {os.path.join(final_dist, f'{app_name}.exe')}")
     except subprocess.CalledProcessError as e:
         print(f"\nBuild failed with error: {e}")

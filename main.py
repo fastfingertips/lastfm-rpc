@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 import sys
 import traceback
 from utils.logger import setup_logging
@@ -53,7 +54,7 @@ def main():
     if check_config():
         logger.info("Importing App class...")
         from core.application import App
-        
+
         try:
             logger.info("Initializing App core...")
             app = App()

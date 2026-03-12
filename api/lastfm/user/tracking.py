@@ -56,6 +56,8 @@ class LastFMTracker:
 
     def _get_current_track(self):
         try:
+            if self.lastfm_user is None:
+                return None
             return self.lastfm_user.get_now_playing()
         except (pylast.WSError, pylast.NetworkError, pylast.MalformedResponseError) as e:
             return self._handle_pylast_error(e, "get_now_playing")

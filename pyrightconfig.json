@@ -3,7 +3,8 @@
         "**/node_modules",
         "**/__pycache__",
         ".venv",
-        ".gemini"
+        ".gemini",
+        "dist"
     ],
     "reportArgumentType": "none",
     "reportAttributeAccessIssue": "none"

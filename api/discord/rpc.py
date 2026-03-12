@@ -1,5 +1,5 @@
 from loguru import logger
-from pypresence import AioPresence
+from pypresence.presence import AioPresence
 
 from api.discord.payload import build_rpc_payload
 from api.lastfm.models import TrackInfo, UserState
