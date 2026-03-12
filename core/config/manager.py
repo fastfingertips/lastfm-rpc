@@ -56,7 +56,7 @@ class ConfigManager:
                 raw = yaml.safe_load(f) or {}
             self._config = AppConfig.model_validate(raw)
             self.translations = self._load_translations(self.app_lang)
-            logger.info(f"Configuration and translations ({self.app_lang}) loaded successfully.")
+            logger.info(f"Config & translations ({self.app_lang}) loaded.")
         except FileNotFoundError:
             logger.warning(f"Config file not found at {self.config_path}, using defaults.")
             self._config = AppConfig()
@@ -83,7 +83,7 @@ class ConfigManager:
             with open(self.config_path, "w", encoding="utf-8") as f:
                 yaml.dump(config_dict, f, default_flow_style=False, allow_unicode=True)
             self.translations = self._load_translations(self.app_lang)
-            logger.info("Configuration saved and reloaded successfully.")
+            logger.info("Configuration saved & reloaded.")
             return True
         except Exception as e:
             logger.error(f"Error saving configuration: {e}")

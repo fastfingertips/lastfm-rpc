@@ -22,7 +22,7 @@ class App:
         self.rpc = DiscordRPC()
         self.current_track_name = messenger("no_track")
         self._rpc_connected = False
-        # Loguru doesn't use standard getEffectiveLevel. We'll use a local flag.
+        # Loguru uses custom level logic; using local flag for simplicity.
         self.debug_enabled = False
 
         # Initialize flags and states
@@ -135,7 +135,7 @@ class App:
 
         app_name = project.APP_NAME
         if getattr(sys, "frozen", False):
-            # Running as bundled executable (e.g. PyInstaller)
+            # Running as bundled executable (Nuitka)
             app_path = f'"{sys.executable}"'
         else:
             # Running as script
