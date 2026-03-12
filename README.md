@@ -11,7 +11,7 @@ A modern, localized, and lightweight Discord Rich Presence client for Last.fm. S
 - **Modern Stack**: Managed with `uv` for lightning-fast environment setup.
 
 ### Demo
-https://github.com/user-attachments/assets/396ef42b-7929-4dac-b8d2-ce43172470f7
+https://github.com/user-attachments/assets/c5bbbdcf-f212-4093-86d7-8bc527cb5eda
 
 ---
 
