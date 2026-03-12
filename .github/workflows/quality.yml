@@ -53,7 +53,7 @@ jobs:
         run: uv sync --dev
 
       - name: Vulture
-        run: uv run vulture api core utils main.py --min-confidence 80
+        run: uv run vulture src main.py --min-confidence 80
 
   translations:
     name: Translation Consistency
@@ -68,4 +68,4 @@ jobs:
         run: uv sync --dev
 
       - name: Check Translations
-        run: uv run python scripts/check_translations.py
+        run: uv run python tools/check_translations.py

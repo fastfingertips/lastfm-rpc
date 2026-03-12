@@ -24,7 +24,7 @@ jobs:
       - name: Build with Nuitka
         env:
           FILE_VERSION: ${{ github.ref_name }}
-        run: uv run python build.py
+        run: uv run python tools/build.py
 
 
       - name: Archive Release

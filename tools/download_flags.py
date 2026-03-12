@@ -1,10 +1,15 @@
 import os
+import sys
+
+# Add 'src' to sys.path to allow absolute imports from within the src directory
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
 
 from utils.net.http import fetch
 
 
 def download_flags():
-    flag_dir = "assets/flags"
+    # Tools are expected to be run from project root
+    flag_dir = os.path.join("resources", "assets", "flags")
     os.makedirs(flag_dir, exist_ok=True)
 
     # Mapping our locale to flagcdn codes

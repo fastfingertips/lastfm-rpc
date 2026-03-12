@@ -17,7 +17,8 @@ def get_keys(data, prefix=""):
 
 
 def main():
-    base_dir = "translations"
+    # Tools are expected to be run from project root
+    base_dir = os.path.join("resources", "translations")
     base_lang_file = os.path.join(base_dir, "en-US.yaml")
 
     if not os.path.exists(base_lang_file):
