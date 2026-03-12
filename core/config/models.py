@@ -58,28 +58,3 @@ class AppConfig(BaseModel):
     app: AppSettingsConfig = Field(default_factory=AppSettingsConfig, alias="APP")
     rpc: RpcDisplayConfig = Field(default_factory=RpcDisplayConfig, alias="RPC")
     model_config = {"populate_by_name": True}
-
-    @property
-    def username(self) -> str:
-        return self.user.username
-
-    @property
-    def api_key(self) -> str:
-        return self.api.key
-
-    @property
-    def api_secret(self) -> str:
-        return self.api.secret
-
-    @property
-    def app_lang(self) -> str:
-        return self.app.lang
-
-    @property
-    def auto_start_enabled(self) -> bool:
-        return self.app.auto_start
-
-    def is_complete(self) -> bool:
-        if not all([self.username, self.api_key, self.api_secret]):
-            return False
-        return not ("<" in self.username or "<" in self.api_key)
