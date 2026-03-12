@@ -79,9 +79,9 @@ class SyncService:
             await self._handle_idle_state()
             return project.UPDATE_INTERVAL
 
-        # Cache track and fetch metadata
-        self._cached_track = (current_track, info)
+        # Fetch metadata and then cache track
         user_state, lib_data = await self._fetch_metadata(current_track, info)
+        self._cached_track = (current_track, info)
 
         if user_state:
             await self._handle_active_track(current_track, info, user_state, lib_data, is_forced)
