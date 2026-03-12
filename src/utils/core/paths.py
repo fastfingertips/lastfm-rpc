@@ -19,16 +19,29 @@ def get_project_root() -> str:
     return os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 
 
+def get_resources_dir() -> str:
+    """Returns the absolute path to the resources directory."""
+    return os.path.join(get_project_root(), "resources")
+
+
 def get_asset_path(filename: str) -> str:
     """Returns the absolute path to an asset file."""
-    # Assets are now in resources/assets
-    return os.path.join(get_project_root(), "resources", "assets", filename)
+    return os.path.join(get_resources_dir(), "assets", filename)
 
 
 def get_translation_path(lang_code: str) -> str:
     """Returns the absolute path to a translation file."""
-    # Translations are now in resources/translations
-    return os.path.join(get_project_root(), "resources", "translations", f"{lang_code}.yaml")
+    return os.path.join(get_resources_dir(), "translations", f"{lang_code}.yaml")
+
+
+def get_translations_dir() -> str:
+    """Returns the absolute path to the translations directory."""
+    return os.path.join(get_resources_dir(), "translations")
+
+
+def get_config_path() -> str:
+    """Returns the absolute path to the configuration file."""
+    return os.path.join(get_project_root(), "config.yaml")
 
 
 def get_log_dir() -> str:
