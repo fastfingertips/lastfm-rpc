@@ -1,11 +1,9 @@
 """Internationalization (i18n) and translation utilities."""
 
-import os
-
 import yaml
 from loguru import logger
 
-from utils.core.paths import get_project_root
+from utils.core.paths import get_translation_path, get_translations_dir
 
 logger = logger.bind(name="i18n")
 
@@ -14,12 +12,12 @@ class TranslationManager:
     def __init__(self):
         self.translations: dict[str, str] = {}
         self.current_lang: str = "en-US"
-        self.translations_dir = os.path.join(get_project_root(), "translations")
+        self.translations_dir = get_translations_dir()
 
     def load(self, lang: str):
         """Loads translations for the specified language."""
         self.current_lang = lang
-        file_path = os.path.join(self.translations_dir, f"{lang}.yaml")
+        file_path = get_translation_path(lang)
         try:
             with open(file_path, encoding="utf-8") as f:
                 self.translations = yaml.safe_load(f) or {}

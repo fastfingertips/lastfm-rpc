@@ -1,10 +1,9 @@
-import os
 from typing import Any
 
 import yaml
 from loguru import logger
 
-from utils.core.paths import get_project_root
+from utils.core.paths import get_config_path
 
 from .models import AppConfig, RpcDisplayConfig
 
@@ -13,8 +12,7 @@ logger = logger.bind(name="config")
 
 class ConfigManager:
     def __init__(self, config_path: str | None = None):
-        root = get_project_root()
-        self.config_path = config_path or os.path.join(root, "config.yaml")
+        self.config_path = config_path or get_config_path()
         self._config = AppConfig()
 
     @property
