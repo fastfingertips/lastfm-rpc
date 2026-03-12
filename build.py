@@ -8,12 +8,14 @@ import sys
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 
+from constants.project import VERSION
+
 def build():
     """
     Builds the application into a standalone executable using Nuitka.
     """
     print("=" * 50)
-    print("Starting Nuitka build for Last.fm RPC")
+    print(f"Starting Nuitka build for Last.fm RPC v{VERSION}")
     print("=" * 50)
 
     # 1. Clean previous builds
@@ -31,7 +33,7 @@ def build():
     icon_path = os.path.join("assets", "last_fm.png")
 
     # 3. Construct Nuitka command
-    version = os.getenv("FILE_VERSION", "0.0.1").lstrip("v")
+    version = VERSION.lstrip("v")
 
     # --standalone: All dependencies bundled
     # --onefile: Single executable

@@ -1,6 +1,6 @@
 [project]
 name = "lastfm-rpc"
-version = "0.0.4"
+version = "0.1.0"
 description = "A localized Discord Rich Presence client for Last.fm, providing real-time music status and custom statistics."
 authors = [
     { name = "fastfingertips", email = "fastfingertips@gmail.com" }
