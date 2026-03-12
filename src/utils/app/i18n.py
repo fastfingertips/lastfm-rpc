@@ -1,8 +1,8 @@
 """Internationalization (i18n) and translation utilities."""
 
-import yaml
 from loguru import logger
 
+from utils.core.io import load_yaml
 from utils.core.paths import get_translation_path, get_translations_dir
 
 logger = logger.bind(name="i18n")
@@ -18,16 +18,14 @@ class TranslationManager:
         """Loads translations for the specified language."""
         self.current_lang = lang
         file_path = get_translation_path(lang)
-        try:
-            with open(file_path, encoding="utf-8") as f:
-                self.translations = yaml.safe_load(f) or {}
-            logger.info(f"Translations for '{lang}' loaded.")
-        except FileNotFoundError:
-            logger.error(f"Translation file missing: {file_path}")
+        data = load_yaml(file_path)
+        if data is None:
+            logger.error(f"Translation file missing or invalid: {file_path}")
             self.translations = {}
-        except Exception as e:
-            logger.error(f"Failed to load translations ({lang}): {e}")
-            self.translations = {}
+            return
+
+        self.translations = data
+        logger.info(f"Translations for '{lang}' loaded.")
 
     def get(self, key: str, *args):
         """Retrieves and formats a translation."""

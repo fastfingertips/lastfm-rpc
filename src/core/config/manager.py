@@ -1,8 +1,8 @@
 from typing import Any
 
-import yaml
 from loguru import logger
 
+from utils.core.io import load_yaml, save_yaml
 from utils.core.paths import get_config_path
 
 from .models import AppConfig, RpcDisplayConfig
@@ -50,17 +50,17 @@ class ConfigManager:
         from utils.app.i18n import i18n
 
         try:
-            with open(self.config_path, encoding="utf-8") as f:
-                raw = yaml.safe_load(f) or {}
-            self._config = AppConfig.model_validate(raw)
+            raw = load_yaml(self.config_path)
+            if raw is None:
+                logger.warning(f"Config not found or invalid at {self.config_path}, using defaults.")
+                self._config = AppConfig()
+            else:
+                self._config = AppConfig.model_validate(raw)
             i18n.load(self.app_lang)
             logger.info("Config & translations synced.")
-        except FileNotFoundError:
-            logger.warning(f"Config not found at {self.config_path}, using defaults.")
-            self._config = AppConfig()
-            i18n.load(self.app_lang)
         except Exception as e:
             logger.error(f"Failed to load config: {e}")
+            self._config = AppConfig()
 
     def update_rpc(self, key: str, value: Any, save: bool = True):
         """Updates a specific RPC setting, optionally saving immediately."""
@@ -117,17 +117,12 @@ class ConfigManager:
             for key, value in rpc_config.items():
                 if hasattr(self._config.rpc, key):
                     setattr(self._config.rpc, key, value)
-        try:
-            config_dict = self._config.model_dump(by_alias=True)
-            with open(self.config_path, "w", encoding="utf-8") as f:
-                yaml.dump(config_dict, f, default_flow_style=False, allow_unicode=True)
-
+        config_dict = self._config.model_dump(by_alias=True)
+        if save_yaml(self.config_path, config_dict):
             i18n.load(self.app_lang)
             logger.info("Config saved & reloaded.")
             return True
-        except Exception as e:
-            logger.error(f"Error saving config: {e}")
-            return False
+        return False
 
     def is_complete(self) -> bool:
         """Business logic to check if configuration is ready for use."""
