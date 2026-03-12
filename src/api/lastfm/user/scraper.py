@@ -106,8 +106,17 @@ class LastFMScraper:
         if not response or response.status != 200:
             return 0
 
-        # Look for the metadata-display paragraph
-        node = response.css("p.metadata-display")
-        all_text = "".join(node.css("*::text").getall()).strip()
+        # Look for the FIRST metadata-display paragraph
+        nodes = response.css("p.metadata-display")
+        if not nodes:
+            logger.debug("No metadata-display node found on page.")
+            return 0
 
-        return parse_integer(all_text) or 0
+        # Get only the text for the FIRST matched node
+        all_text = "".join(nodes[0].css("*::text").getall()).strip()
+        count = parse_integer(all_text) or 0
+        
+        # Determine the contextual title for logging purely for debug clarity
+        title_context = "track_scrobbles" if "/_/" in response.url else "artist_scrobbles"
+        logger.debug(f"Metadata Item - Title: '{title_context}', Raw: '{all_text}', Parsed: {count}")
+        return count
