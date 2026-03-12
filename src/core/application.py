@@ -52,29 +52,19 @@ class App:
 
     def toggle_display_option(self, option):
         """Toggles a boolean RPC setting."""
-        val = not getattr(config.rpc, option)
-        config.update_rpc(option, val)
+        config.toggle_rpc(option)
         self.update_event.set()
         self.tray.refresh()
 
     def set_small_image_option(self, option):
         """Radio behavior for small image source."""
-        opts = ["use_custom_profile_image", "use_default_icon", "use_lastfm_icon", "use_custom_small_image"]
-        for opt in opts:
-            setattr(config.rpc, opt, opt == option)
-        config.save_now()
+        config.set_rpc_small_image(option)
         self.update_event.set()
         self.tray.refresh()
 
     def set_large_text_mode(self, mode):
         """Radio behavior for large image text."""
-        if mode == "scrobbles":
-            config.rpc.show_large_text, config.rpc.show_artist_scrobbles_large = True, True
-        elif mode == "album":
-            config.rpc.show_large_text, config.rpc.show_artist_scrobbles_large = True, False
-        else:  # off
-            config.rpc.show_large_text = False
-        config.save_now()
+        config.set_rpc_large_text_mode(mode)
         self.update_event.set()
         self.tray.refresh()
 
@@ -106,7 +96,9 @@ class App:
             self.tray.refresh()
             logger.info(f"Status Update: {new_status} | Discord: {self._rpc_connected}")
 
-    def check_updates_manual(self, icon, item):
+    def _trigger_update_check(self, manual=False):
+        """Internal helper to check for updates asynchronously."""
+
         def run():
             from utils.app.updater import check_for_updates
 
@@ -114,12 +106,18 @@ class App:
             if is_avail:
                 self.latest_update = (is_avail, ver, url)
                 self.tray.refresh()
-                if ask_yes_no(messenger("menu_check_updates"), messenger("update_available", ver)) and url:
-                    open_url(url)
-            else:
+                if manual:
+                    if ask_yes_no(messenger("menu_check_updates"), messenger("update_available", ver)) and url:
+                        open_url(url)
+                else:
+                    self.tray.notify(messenger("update_available", ver))
+            elif manual:
                 show_info(messenger("menu_check_updates"), messenger("update_not_found"))
 
         threading.Thread(target=run, daemon=True).start()
+
+    def check_updates_manual(self, icon, item):
+        self._trigger_update_check(manual=True)
 
     def _on_setup(self, icon):
         import time
@@ -129,18 +127,6 @@ class App:
         self.rpc_thread.start()
         # Startup update check
         self._trigger_update_check()
-
-    def _trigger_update_check(self):
-        def run():
-            from utils.app.updater import check_for_updates
-
-            is_avail, ver, url = check_for_updates()
-            if is_avail:
-                self.latest_update = (is_avail, ver, url)
-                self.tray.refresh()
-                self.tray.notify(messenger("update_available", ver))
-
-        threading.Thread(target=run, daemon=True).start()
 
     def run(self):
         self.tray.run(setup_callback=self._on_setup)

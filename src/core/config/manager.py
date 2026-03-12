@@ -64,11 +64,37 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Failed to load config: {e}")
 
-    def update_rpc(self, key: str, value: Any):
-        """Updates a specific RPC setting and saves immediately."""
+    def update_rpc(self, key: str, value: Any, save: bool = True):
+        """Updates a specific RPC setting, optionally saving immediately."""
         if hasattr(self._config.rpc, key):
             setattr(self._config.rpc, key, value)
-            self.save_now()
+            if save:
+                self.save_now()
+
+    def toggle_rpc(self, key: str):
+        """Toggles a boolean RPC setting and saves."""
+        current = getattr(self._config.rpc, key, None)
+        if isinstance(current, bool):
+            self.update_rpc(key, not current)
+
+    def set_rpc_small_image(self, option: str):
+        """Sets the small image source (radio choice)."""
+        opts = ["use_custom_profile_image", "use_default_icon", "use_lastfm_icon", "use_custom_small_image"]
+        for opt in opts:
+            self.update_rpc(opt, opt == option, save=False)
+        self.save_now()
+
+    def set_rpc_large_text_mode(self, mode: str):
+        """Sets the large text display mode (radio choice)."""
+        if mode == "scrobbles":
+            self.update_rpc("show_large_text", True, save=False)
+            self.update_rpc("show_artist_scrobbles_large", True, save=False)
+        elif mode == "album":
+            self.update_rpc("show_large_text", True, save=False)
+            self.update_rpc("show_artist_scrobbles_large", False, save=False)
+        else:  # off
+            self.update_rpc("show_large_text", False, save=False)
+        self.save_now()
 
     def save_now(self):
         """Saves current state without changing fields."""
