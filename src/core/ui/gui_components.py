@@ -43,3 +43,9 @@ class GuiComponents:
         sep = ctk.CTkFrame(parent, height=2, fg_color="gray25")
         sep.pack(fill="x", pady=20)
         return sep
+
+    @staticmethod
+    def create_button(parent, text, command, **kwargs):
+        btn = ctk.CTkButton(parent, text=text, command=command, height=32, **kwargs)
+        btn.pack(pady=4)
+        return btn

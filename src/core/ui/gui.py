@@ -1,4 +1,5 @@
 import os
+import threading
 
 import customtkinter as ctk
 from loguru import logger
@@ -31,7 +32,7 @@ class ConfigGUI:
         self.root = ctk.CTk()
         self.root.title(f"{APP_NAME} - {messenger('menu_settings')}")
         self.is_wizard = is_wizard
-        
+
         if is_wizard:
             self.root.geometry("480x560")
         else:
@@ -80,7 +81,7 @@ class ConfigGUI:
 
         # Content Sections
         self._build_api_section(scroll)
-        
+
         if not self.is_wizard:
             GuiComponents.create_separator(scroll)
             self._build_rpc_text_section(scroll)
@@ -89,8 +90,12 @@ class ConfigGUI:
             self._build_toggle_section(scroll)
         else:
             # In wizard mode, add a small helpful note
-            ctk.CTkLabel(scroll, text="Advanced settings will be available in the system tray later.", 
-                         font=ctk.CTkFont(slant="italic", size=11), text_color="gray").pack(pady=20)
+            ctk.CTkLabel(
+                scroll,
+                text="Advanced settings will be available in the system tray later.",
+                font=ctk.CTkFont(slant="italic", size=11),
+                text_color="gray",
+            ).pack(pady=20)
 
         self._setup_footer()
 
@@ -140,6 +145,10 @@ class ConfigGUI:
             )
             lbl.pack(anchor="w")
             lbl.bind("<Button-1>", lambda e, u=url: open_url(u))
+
+        self.test_btn = GuiComponents.create_button(
+            scroll, messenger("gui_test_conn_btn"), self._test_connection, fg_color="gray30", hover_color="gray40"
+        )
 
     def _build_rpc_text_section(self, scroll):
         GuiComponents.create_section_header(scroll, "gui_tab_rpc", "Discord RPC")
@@ -242,10 +251,53 @@ class ConfigGUI:
             btn.pack(side="left", padx=5)
             btn.bind("<Button-1>", lambda e, lang_code=lang: self.on_lang_change(lang_code))
 
+    def _test_connection(self):
+        """Validates API credentials asynchronously."""
+        username = self.fields["username"].get()
+        api_key = self.fields["api_key"].get()
+        api_secret = self.fields["api_secret"].get()
+
+        if not all([username, api_key, api_secret]):
+            show_warning(messenger("gui_warning_title"), messenger("gui_warning_body"))
+            return
+
+        self.test_btn.configure(text=messenger("gui_test_conn_testing"), state="disabled")
+
+        def run_test():
+            import pylast
+
+            try:
+                network = pylast.LastFMNetwork(api_key, api_secret)
+                user = network.get_user(username)
+                # Calling get_name() on the user object forces a small API call to verify existence and key validity
+                user.get_name()
+
+                self.root.after(
+                    0,
+                    lambda: self.test_btn.configure(
+                        text=messenger("gui_test_conn_success"), fg_color="#28a745", state="normal"
+                    ),
+                )
+            except Exception as e:
+                error_msg = str(e)
+                self.root.after(
+                    0,
+                    lambda: self.test_btn.configure(
+                        text=messenger("gui_test_conn_btn"), fg_color="gray30", state="normal"
+                    ),
+                )
+                self.root.after(0, lambda: show_warning(messenger("err"), messenger("gui_test_conn_error", error_msg)))
+            finally:
+                # Reset button color after a delay if successful
+                if "success" in self.test_btn.cget("text").lower() or "başarılı" in self.test_btn.cget("text").lower():
+                    self.root.after(3000, lambda: self.test_btn.configure(fg_color="gray30"))
+
+        threading.Thread(target=run_test, daemon=True).start()
+
     def save(self):
         self._capture_to_temp()
         d = self.temp_values
-        
+
         # Validation for required fields
         if not all([d.get("username"), d.get("api_key"), d.get("api_secret")]):
             show_warning(messenger("gui_warning_title"), messenger("gui_warning_body"))
@@ -255,12 +307,12 @@ class ConfigGUI:
             "USER": {"USERNAME": d.get("username")},
             "API": {"KEY": d.get("api_key"), "SECRET": d.get("api_secret")},
             "APP": {
-                "LANG": d.get("lang", self.config.app_lang), 
-                "AUTO_START": d.get("auto_start", self.config.auto_start_enabled)
+                "LANG": d.get("lang", self.config.app_lang),
+                "AUTO_START": d.get("auto_start", self.config.auto_start_enabled),
             },
-            "RPC": {}
+            "RPC": {},
         }
-        
+
         # Mapping for RPC fields that might be present
         rpc_mapping = {
             "small_image": "show_small_image",
@@ -277,9 +329,9 @@ class ConfigGUI:
             "custom_large_txt": "use_custom_large_text",
             "custom_small_txt": "use_custom_small_text",
             "button_1": "button_1",
-            "button_2": "button_2"
+            "button_2": "button_2",
         }
-        
+
         for temp_key, rpc_key in rpc_mapping.items():
             if temp_key in d:
                 payload["RPC"][rpc_key] = d[temp_key]
