@@ -31,10 +31,11 @@ class GuiComponents:
         return entry
 
     @staticmethod
-    def create_switch(parent, text, initial_state, command=None):
+    def create_switch(parent, text, initial_state, command=None, pack=True):
         switch_var = ctk.BooleanVar(value=initial_state)
         switch = ctk.CTkSwitch(parent, text=text, variable=switch_var, command=command, font=ctk.CTkFont(size=12))
-        switch.pack(anchor="w", pady=4)
+        if pack:
+            switch.pack(anchor="w", pady=4)
         return switch, switch_var
 
     @staticmethod

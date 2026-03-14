@@ -196,8 +196,7 @@ class ConfigGUI:
         grid = ctk.CTkFrame(scroll, fg_color="transparent")
         grid.pack(fill="x")
         for i, (key, label, default) in enumerate(switches):
-            s, var = GuiComponents.create_switch(grid, label, self.temp_values.get(key, default))
-            s.pack_forget()  # Re-pack in grid
+            s, var = GuiComponents.create_switch(grid, label, self.temp_values.get(key, default), pack=False)
             s.grid(row=i // 2, column=i % 2, sticky="w", padx=20, pady=5)
             self.fields[key] = var
 
