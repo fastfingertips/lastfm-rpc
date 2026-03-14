@@ -281,9 +281,23 @@ class ConfigGUI:
             try:
                 network = pylast.LastFMNetwork(api_key, api_secret)
                 user = network.get_user(username)
-                # Calling get_playcount() forces a real API call to verify the USER exists
-                # and the API KEY/SECRET are valid.
+                # 1. Verify API Key and Username existence
                 user.get_playcount()
+
+                # 2. Verify API Secret by attempting a signed request with a dummy session key
+                # This doesn't actually scrobble but forces Last.fm to check the signature first.
+                try:
+                    network.session_key = "invalid_session_key_for_testing"
+                    # We use a very old timestamp to be safe
+                    network.scrobble(artist="Verify", title="Secret", timestamp=1000000000)
+                except pylast.WSError as e:
+                    # If signature is wrong, secret is wrong (Error 13: Invalid method signature)
+                    # If session key is wrong, secret is OK (Error 9: Invalid session key)
+                    err = str(e).lower()
+                    if "signature" in err:
+                        raise Exception("Invalid API Secret (Signature Mismatch)") from e
+                    if "session key" not in err:
+                        raise  # Re-raise if it's some other structural error
 
                 self.root.after(
                     0,
