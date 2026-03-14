@@ -2,6 +2,7 @@ from typing import Any
 
 from loguru import logger
 
+from utils.app.i18n_detect import detect_system_language
 from utils.core.io import load_yaml, save_yaml
 from utils.core.paths import get_config_path
 
@@ -54,6 +55,9 @@ class ConfigManager:
             if raw is None:
                 logger.warning(f"Config not found or invalid at {self.config_path}, using defaults.")
                 self._config = AppConfig()
+                # Auto-detect language on first run
+                self._config.app.lang = detect_system_language()
+                logger.info(f"Auto-detected system language: {self._config.app.lang}")
             else:
                 self._config = AppConfig.model_validate(raw)
             i18n.load(self.app_lang)
