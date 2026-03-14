@@ -115,7 +115,7 @@ class LastFMScraper:
         # Get only the text for the FIRST matched node
         all_text = "".join(nodes[0].css("*::text").getall()).strip()
         count = parse_integer(all_text) or 0
-        
+
         # Determine the contextual title for logging purely for debug clarity
         title_context = "track_scrobbles" if "/_/" in response.url else "artist_scrobbles"
         logger.debug(f"Metadata Item - Title: '{title_context}', Raw: '{all_text}', Parsed: {count}")

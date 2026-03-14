@@ -150,6 +150,18 @@ class ConfigGUI:
             scroll, messenger("gui_test_conn_btn"), self._test_connection, fg_color="gray30", hover_color="gray40"
         )
 
+        # Config Path Display
+        config_path = self.config.config_path
+        path_label = ctk.CTkLabel(
+            scroll,
+            text=messenger("gui_config_path", config_path),
+            font=ctk.CTkFont(size=10),
+            text_color="gray50",
+            cursor="hand2",
+        )
+        path_label.pack(anchor="w", pady=(10, 0))
+        path_label.bind("<Button-1>", lambda e: open_url(os.path.dirname(config_path)))
+
     def _build_rpc_text_section(self, scroll):
         GuiComponents.create_section_header(scroll, "gui_tab_rpc", "Discord RPC")
 
