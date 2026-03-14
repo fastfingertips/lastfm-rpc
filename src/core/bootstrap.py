@@ -35,7 +35,7 @@ def ensure_config_ready() -> bool:
         return False
 
     # Block until GUI is closed
-    ConfigGUI.launch(config, on_initial_save)
+    ConfigGUI.launch(config, on_initial_save, is_wizard=True)
 
     # After GUI closes, check again. If still incomplete (cancelled), exit.
     if not config.is_complete():

@@ -16,9 +16,9 @@ logger = logger.bind(name="gui")
 
 class ConfigGUI:
     @staticmethod
-    def launch(current_config, on_save_callback):
+    def launch(current_config, on_save_callback, is_wizard=False):
         """Helper to create and run the GUI instance."""
-        gui = ConfigGUI(current_config, on_save_callback)
+        gui = ConfigGUI(current_config, on_save_callback, is_wizard=is_wizard)
 
         def on_close():
             gui.root.quit()
@@ -27,10 +27,15 @@ class ConfigGUI:
         gui.root.protocol("WM_DELETE_WINDOW", on_close)
         gui.run()
 
-    def __init__(self, current_config, on_save_callback):
+    def __init__(self, current_config, on_save_callback, is_wizard=False):
         self.root = ctk.CTk()
         self.root.title(f"{APP_NAME} - {messenger('menu_settings')}")
-        self.root.geometry("620x820")
+        self.is_wizard = is_wizard
+        
+        if is_wizard:
+            self.root.geometry("480x560")
+        else:
+            self.root.geometry("620x820")
 
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
@@ -75,11 +80,17 @@ class ConfigGUI:
 
         # Content Sections
         self._build_api_section(scroll)
-        GuiComponents.create_separator(scroll)
-        self._build_rpc_text_section(scroll)
-        self._build_rpc_image_section(scroll)
-        self._build_button_section(scroll)
-        self._build_toggle_section(scroll)
+        
+        if not self.is_wizard:
+            GuiComponents.create_separator(scroll)
+            self._build_rpc_text_section(scroll)
+            self._build_rpc_image_section(scroll)
+            self._build_button_section(scroll)
+            self._build_toggle_section(scroll)
+        else:
+            # In wizard mode, add a small helpful note
+            ctk.CTkLabel(scroll, text="Advanced settings will be available in the system tray later.", 
+                         font=ctk.CTkFont(slant="italic", size=11), text_color="gray").pack(pady=20)
 
         self._setup_footer()
 
@@ -234,30 +245,44 @@ class ConfigGUI:
     def save(self):
         self._capture_to_temp()
         d = self.temp_values
-        if not all([d["username"], d["api_key"], d["api_secret"]]):
+        
+        # Validation for required fields
+        if not all([d.get("username"), d.get("api_key"), d.get("api_secret")]):
             show_warning(messenger("gui_warning_title"), messenger("gui_warning_body"))
             return
 
         payload = {
-            "USER": {"USERNAME": d["username"]},
-            "API": {"KEY": d["api_key"], "SECRET": d["api_secret"]},
-            "APP": {"LANG": d["lang"], "AUTO_START": d["auto_start"]},
-            "RPC": {k: d[k] for k in d if k not in ["username", "api_key", "api_secret", "lang", "auto_start"]},
+            "USER": {"USERNAME": d.get("username")},
+            "API": {"KEY": d.get("api_key"), "SECRET": d.get("api_secret")},
+            "APP": {
+                "LANG": d.get("lang", self.config.app_lang), 
+                "AUTO_START": d.get("auto_start", self.config.auto_start_enabled)
+            },
+            "RPC": {}
         }
-        # Remap some keys if mismatch found
-        payload["RPC"]["show_small_image"] = d["small_image"]
-        payload["RPC"]["show_scrobbles"] = d["scrobbles"]
-        payload["RPC"]["focus_artist"] = d["focus"]
-        payload["RPC"]["details_template"] = d["details"]
-        payload["RPC"]["state_template"] = d["state"]
-        payload["RPC"]["large_text_template"] = d["large_text"]
-        payload["RPC"]["small_text_template"] = d["small_text"]
-        payload["RPC"]["large_image_template"] = d["large_image"]
-        payload["RPC"]["small_image_template"] = d["small_image_url"]
-        payload["RPC"]["use_custom_large_image"] = d["custom_large_img"]
-        payload["RPC"]["use_custom_small_image"] = d["custom_small_img"]
-        payload["RPC"]["use_custom_large_text"] = d["custom_large_txt"]
-        payload["RPC"]["use_custom_small_text"] = d["custom_small_txt"]
+        
+        # Mapping for RPC fields that might be present
+        rpc_mapping = {
+            "small_image": "show_small_image",
+            "scrobbles": "show_scrobbles",
+            "focus": "focus_artist",
+            "details": "details_template",
+            "state": "state_template",
+            "large_text": "large_text_template",
+            "small_text": "small_text_template",
+            "large_image": "large_image_template",
+            "small_image_url": "small_image_template",
+            "custom_large_img": "use_custom_large_image",
+            "custom_small_img": "use_custom_small_image",
+            "custom_large_txt": "use_custom_large_text",
+            "custom_small_txt": "use_custom_small_text",
+            "button_1": "button_1",
+            "button_2": "button_2"
+        }
+        
+        for temp_key, rpc_key in rpc_mapping.items():
+            if temp_key in d:
+                payload["RPC"][rpc_key] = d[temp_key]
 
         if self.on_save(payload):
             self.save_btn.configure(text="Saved!", fg_color="#28a745")
