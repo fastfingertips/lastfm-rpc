@@ -281,8 +281,9 @@ class ConfigGUI:
             try:
                 network = pylast.LastFMNetwork(api_key, api_secret)
                 user = network.get_user(username)
-                # Calling get_name() on the user object forces a small API call to verify existence and key validity
-                user.get_name()
+                # Calling get_playcount() forces a real API call to verify the USER exists
+                # and the API KEY/SECRET are valid.
+                user.get_playcount()
 
                 self.root.after(
                     0,
