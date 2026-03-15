@@ -7,7 +7,7 @@ via `core.config.config`.
 """
 
 # ── Project Info ──────────────────────────────────────────
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 GITHUB_ORG = "fastfingertips"
 GITHUB_REPO = "lastfm-rpc"
 GITHUB_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_ORG}/{GITHUB_REPO}/releases/latest"
