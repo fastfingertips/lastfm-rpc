@@ -11,6 +11,7 @@ from core.ui.gui import ConfigGUI
 from core.ui.tray_menu import TrayMenuFactory
 from utils.app.i18n import messenger
 from utils.core.paths import get_asset_path
+from utils.core.strings import truncate_string
 from utils.gui.dialogs import show_error
 from utils.net.urls import open_url
 
@@ -85,7 +86,8 @@ class TrayManager:
     def update_title(self, title):
         """Updates hover tooltip."""
         if self.icon:
-            self.icon.title = f"{project.APP_NAME}\n{title}"
+            full_title = f"{project.APP_NAME}\n{title}"
+            self.icon.title = truncate_string(full_title, project.TRAY_TOOLTIP_LIMIT)
 
     def notify(self, message, title=None):
         """Shows system notification."""

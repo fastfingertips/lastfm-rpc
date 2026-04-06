@@ -87,3 +87,13 @@ def format_placeholders(template: str, placeholders: dict) -> str:
     except Exception as e:
         logger.error(f"Error formatting template placeholders: {e}")
         return template
+
+
+def truncate_string(text: str, limit: int, suffix: str = "...") -> str:
+    """Truncates a string to the given limit, adding a suffix if exceeded."""
+    if not text or len(text) <= limit:
+        return text or ""
+    truncate_at = limit - len(suffix)
+    if truncate_at <= 0:
+        return text[:limit]
+    return text[:truncate_at] + suffix

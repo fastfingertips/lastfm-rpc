@@ -14,7 +14,9 @@ def url_encoder(text: str) -> str:
     Returns:
         str: The URL-encoded text.
     """
-    return parse.quote(text, safe="")
+    if not text:
+        return ""
+    return parse.quote(str(text), safe="")
 
 
 def open_url(url: str):
@@ -30,3 +32,15 @@ def open_url(url: str):
         webbrowser.open(url)
     except Exception as e:
         logger.error(f"Failed to open URL {url}: {e}")
+
+
+def is_valid_uri(url: str) -> bool:
+    """
+    Checks if a URL is a syntactically valid URI with a scheme and netloc.
+    Useful for ensuring APIs (like Discord's) won't reject the URL.
+    """
+    try:
+        result = parse.urlparse(url)
+        return all([result.scheme in ("http", "https"), result.netloc])
+    except Exception:
+        return False

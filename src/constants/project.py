@@ -17,6 +17,10 @@ APP_NAME = "Last.fm Discord Rich Presence"
 CLIENT_ID = "702984897496875072"
 RPC_LINE_LIMIT = 26
 RPC_XCHAR = " "
+RPC_TEXT_LIMIT = 128  # Max chars for details, state, large_text, small_text
+RPC_BUTTON_LABEL_LIMIT = 32  # Max chars for button labels
+RPC_BUTTON_URL_LIMIT = 512  # Max chars for button URLs
+TRAY_TOOLTIP_LIMIT = 127  # Max chars for Windows system tray tooltip
 
 # ── Timings & Limits (Seconds) ───────────────────────────
 RETRY_INTERVAL = 5

@@ -8,12 +8,16 @@ from constants.project import (
     LASTFM_ICON_URL,
     LASTFM_TRACK_URL_TEMPLATE,
     NIGHT_MODE_COVER,
+    RPC_BUTTON_LABEL_LIMIT,
+    RPC_BUTTON_URL_LIMIT,
+    RPC_TEXT_LIMIT,
+    RPC_XCHAR,
     YT_MUSIC_SEARCH_TEMPLATE,
 )
 from utils.app.i18n import messenger
 from utils.core.clock import is_night_hours
-from utils.core.strings import format_placeholders
-from utils.net.urls import url_encoder
+from utils.core.strings import format_placeholders, truncate_string
+from utils.net.urls import is_valid_uri, url_encoder
 
 logger = logger.bind(name="rpc_payload")
 
@@ -69,8 +73,8 @@ class RPCPayloadBuilder:
         return {
             "activity_type": ActivityType.LISTENING,
             "status_display_type": display_type,
-            "details": details if len(details) >= 2 else f"{details} ",
-            "state": state if len(state) >= 2 else f"{state} ",
+            "details": truncate_string(details.ljust(2, RPC_XCHAR), RPC_TEXT_LIMIT),
+            "state": truncate_string(state.ljust(2, RPC_XCHAR), RPC_TEXT_LIMIT),
             "buttons": buttons,
             "small_image": small_asset,
             "small_text": small_text,
@@ -85,7 +89,9 @@ class RPCPayloadBuilder:
         from constants.project import LASTFM_TRACK_GLOBAL_URL, LASTFM_USER_URL, SPOTIFY_SEARCH_TEMPLATE
 
         artist, title, album = self.info.artist, self.info.title, self.info.album
-        enc_artist, enc_title, enc_album = url_encoder(artist), url_encoder(title), url_encoder(album)
+        enc_artist, enc_title = url_encoder(artist), url_encoder(title)
+        # For search queries, encode the full string to avoid raw spaces between parts
+        search_query = url_encoder(album) if album else url_encoder(f"{artist} {title}")
 
         options = {
             "lastfm_track": {
@@ -104,15 +110,26 @@ class RPCPayloadBuilder:
             },
             "youtube": {
                 "label": "YouTube Music",
-                "url": str(YT_MUSIC_SEARCH_TEMPLATE.format(query=enc_album if album else f"{enc_artist} {enc_title}")),
+                "url": str(YT_MUSIC_SEARCH_TEMPLATE.format(query=search_query)),
             },
             "spotify": {
                 "label": "Search on Spotify",
-                "url": str(SPOTIFY_SEARCH_TEMPLATE.format(query=enc_album if album else f"{enc_artist} {enc_title}")),
+                "url": str(SPOTIFY_SEARCH_TEMPLATE.format(query=search_query)),
             },
         }
 
-        buttons = [options[opt_key] for opt_key in [self.config.button_1, self.config.button_2] if opt_key in options]
+        buttons = []
+        for opt_key in [self.config.button_1, self.config.button_2]:
+            if opt_key in options:
+                btn = options[opt_key]
+                url = btn["url"]
+                # Discord validates URLs as URIs. Drop buttons with invalid/too-long URLs.
+                if len(url) > RPC_BUTTON_URL_LIMIT or not is_valid_uri(url):
+                    logger.warning(f"Dropping RPC button '{btn['label']}': invalid or too long URL ({len(url)} chars)")
+                    continue
+                btn["label"] = truncate_string(btn["label"], RPC_BUTTON_LABEL_LIMIT)
+                buttons.append(btn)
+
         return buttons[:2] if buttons else None
 
     def _prepare_large_image_group(self):
@@ -146,7 +163,7 @@ class RPCPayloadBuilder:
 
             text = format_rpc_text(lines) or (self.info.album if self.info.album else None)
 
-        return asset, text
+        return asset, truncate_string(text, RPC_TEXT_LIMIT) if text else None
 
     def _prepare_small_image_group(self):
         """Prepares user status icon and its hover text."""
@@ -184,7 +201,7 @@ class RPCPayloadBuilder:
                 stats["loved"] = messenger("rpc_loved_tracks", self.user_state.total_loved_tracks)
             text = format_rpc_text(stats)
 
-        return asset, text
+        return asset, truncate_string(text, RPC_TEXT_LIMIT) if text else None
 
     def _prepare_core_text(self):
         """Formats the main two lines of text."""
