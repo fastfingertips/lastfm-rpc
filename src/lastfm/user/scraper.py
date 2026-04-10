@@ -3,8 +3,8 @@ import os
 
 from loguru import logger
 
-from api.lastfm.models import UserState
 from constants.project import DEFAULT_AVATAR_ID, LASTFM_LIBRARY_URL, LASTFM_USER_URL
+from lastfm.models import UserState
 from utils.core.strings import parse_integer
 from utils.net.http import async_fetch
 from utils.net.urls import url_encoder

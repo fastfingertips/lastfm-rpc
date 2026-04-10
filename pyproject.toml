@@ -31,7 +31,7 @@ Issues = "https://github.com/fastfingertips/lastfm-rpc/issues"
 lastfm-rpc = "main:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/api", "src/constants", "src/core", "src/utils", "resources/translations", "resources/assets"]
+packages = ["src/discord", "src/lastfm", "src/constants", "src/core", "src/utils", "resources/translations", "resources/assets"]
 
 [tool.uv]
 managed = true
@@ -79,7 +79,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["api", "core", "utils", "constants"]
+known-first-party = ["discord", "lastfm", "core", "utils", "constants"]
 
 [tool.ruff.lint.per-file-ignores]
 "main.py" = ["E402"]  # setup_logging() must run before imports

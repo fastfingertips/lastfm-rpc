@@ -3,13 +3,13 @@ import asyncio
 from loguru import logger
 
 import constants.project as project
-from api.discord.exceptions import DiscordError
-from api.lastfm.exceptions import APIKeyError, LastFMError
-from api.lastfm.models import TrackInfo
-from api.lastfm.user.scraper import LastFMScraper
-from api.lastfm.user.tracking import LastFMTracker
 from core.config import config
 from core.exceptions import AppNetworkError
+from discord.exceptions import DiscordError
+from lastfm.exceptions import APIKeyError, LastFMError
+from lastfm.models import TrackInfo
+from lastfm.user.scraper import LastFMScraper
+from lastfm.user.tracking import LastFMTracker
 from utils.app.i18n import messenger
 
 logger = logger.bind(name="sync")

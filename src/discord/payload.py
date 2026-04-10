@@ -1,7 +1,5 @@
 from loguru import logger
 
-from api.discord.formatter import format_rpc_text
-from api.lastfm.models import TrackInfo, UserState
 from constants.project import (
     DAY_MODE_COVER,
     DEFAULT_AVATAR_URL,
@@ -14,6 +12,8 @@ from constants.project import (
     RPC_XCHAR,
     YT_MUSIC_SEARCH_TEMPLATE,
 )
+from discord.formatter import format_rpc_text
+from lastfm.models import TrackInfo, UserState
 from utils.app.i18n import messenger
 from utils.core.clock import is_night_hours
 from utils.core.strings import format_placeholders, truncate_string

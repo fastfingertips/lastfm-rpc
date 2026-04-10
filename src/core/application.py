@@ -2,10 +2,10 @@ import threading
 
 from loguru import logger
 
-from api.discord.rpc import DiscordRPC
 from core.config import config
 from core.sync_service import SyncService
 from core.ui.tray import TrayManager
+from discord.rpc import DiscordRPC
 from utils.app.autostart import toggle_autostart
 from utils.app.i18n import messenger
 from utils.core.logger import setup_logging
